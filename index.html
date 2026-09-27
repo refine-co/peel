@@ -20,6 +20,10 @@
   th, td { text-align: left; vertical-align: top; padding: .6rem .75rem; border-bottom: 1px solid rgba(128,128,128,.3); font-size: .95rem; }
   code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
   a { color: inherit; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.4rem; margin-top: 1.2rem; }
+  .shot video { width: 100%; border-radius: 14px; display: block; background: #16150f; }
+  .shot p { margin: .55rem 0 0; font-size: .9rem; opacity: .75; }
+  .note { font-size: .9rem; opacity: .7; }
 </style>
 </head>
 <body>
@@ -27,6 +31,23 @@
 <h1>Peel – Sticker Maker</h1>
 <p class="lede">Turn your photos into WhatsApp sticker packs in under a minute. The cut-out happens on your phone. Made in Malaysia by RefineCo.</p>
 <p><a href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get it on Google Play</a></p>
+<h2>See it work</h2>
+<p class="note">Three short films, recorded on a real phone. No sped-up footage.</p>
+<div class="shots">
+  <div class="shot">
+    <video src="video/photo.mp4" poster="video/photo.jpg" controls playsinline preload="none"></video>
+    <p>A photo becomes a sticker.</p>
+  </div>
+  <div class="shot">
+    <video src="video/animated.mp4" poster="video/animated.jpg" controls playsinline preload="none"></video>
+    <p>A short video becomes a moving sticker.</p>
+  </div>
+  <div class="shot">
+    <video src="video/text.mp4" poster="video/text.jpg" controls playsinline preload="none"></video>
+    <p>Thirty text stickers in one tap.</p>
+  </div>
+</div>
+
 <p><a href="privacy.html">Privacy policy</a> · <a href="terms.html">Terms of use</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a></p>
 </body>
 </html>
