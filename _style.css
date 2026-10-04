@@ -1,0 +1,45 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fbf9f6; --fg: #1c1a17; --muted: #6d665c; --accent: #d9601c;
+  --card: #ffffff; --line: rgba(120,110,95,.22);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #16150f; --fg: #ece7e0; --muted: #a39a8c; --accent: #ff9556;
+          --card: #201e16; --line: rgba(220,210,190,.16); }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto; padding: 3rem 1.25rem 6rem; max-width: 52rem;
+  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--fg); background: var(--bg);
+}
+h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .75rem; }
+h2 { font-size: 1.2rem; margin: 2.75rem 0 .6rem; }
+h3 { font-size: 1.02rem; margin: 0 0 .3rem; }
+a { color: inherit; }
+.eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; opacity: .65; letter-spacing: .04em; }
+.lede { font-size: 1.1rem; }
+.note { font-size: .9rem; color: var(--muted); }
+nav { margin: 0 0 2rem; font-size: .92rem; }
+nav a { margin-right: 1.1rem; }
+footer { margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: .9rem; color: var(--muted); }
+footer a { color: inherit; }
+
+.packs { display: grid; gap: 1.5rem; margin-top: 1rem; }
+.pack { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.pack img { width: 100%; display: block; background: #fdf7ec; }
+.pack .body { padding: 1rem 1.15rem 1.25rem; }
+.pack .meta { font-size: .88rem; color: var(--muted); margin: .15rem 0 .85rem; }
+.get {
+  display: inline-block; padding: .6rem 1.1rem; border-radius: 999px;
+  background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; font-size: .95rem;
+}
+.get:hover { filter: brightness(1.07); }
+.after { font-size: .85rem; color: var(--muted); margin: .7rem 0 0; }
+
+ol.steps { padding-left: 1.2rem; }
+ol.steps li { margin-bottom: .9rem; }
+.empty { border: 1px dashed var(--line); border-radius: 16px; padding: 1.25rem; color: var(--muted); font-size: .94rem; }
+table { border-collapse: collapse; width: 100%; margin-top: .5rem; display: block; overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: .55rem .7rem; border-bottom: 1px solid var(--line); font-size: .93rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
