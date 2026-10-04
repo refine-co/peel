@@ -67,7 +67,7 @@ Each pin uses the 1000x1500 image already built at `packs/img/<pack>/pin.png`, a
 - **Title:** Turn any photo into a WhatsApp sticker — offline, in under a minute
 - **Description:** Peel cuts your photo out on the phone and builds a WhatsApp sticker pack from it.
   No internet permission at all, so nothing can be uploaded anywhere — you can check that yourself
-  in the app's permission list. Free, no ads, made in Malaysia.
+  in the app's permission list. Free, and no ads.
 
 ## Rules for writing more of these
 
