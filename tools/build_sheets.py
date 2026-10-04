@@ -21,6 +21,15 @@ SITE = pathlib.Path(__file__).resolve().parent.parent
 SPECS = pathlib.Path.home() / "Projects/android-peel/tools/packs/site"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
+# Opens Peel straight on its pack picker, in Downloads, where the browser just put the file.
+# Peel has no internet permission, so it cannot fetch the pack itself — the browser does that
+# first and Peel reads it from storage. Falls back to the Play listing when Peel is missing.
+PEEL_IMPORT_LINK = (
+    "intent://import#Intent;scheme=peel;package=my.refineco.peel;"
+    "S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails"
+    "%3Fid%3Dmy.refineco.peel;end"
+)
+
 PACKS = [
     {
         "slug": "halloween",
@@ -28,7 +37,7 @@ PACKS = [
         "spec": "halloween-captions.json",
         "c1": "#7b5ea7", "c2": "#ff6b35",
         "sub": "20 stickers · a ghost, a black cat, a bat, a pumpkin and a one-eyed monster",
-        "after": 'Then in Peel: <strong>New pack</strong> → scroll down → <strong>Import a pack file</strong>.',
+        "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
         "section": "Festive",
     },
     {
@@ -37,7 +46,7 @@ PACKS = [
         "spec": "humans-captions.json",
         "c1": "#ff4d8d", "c2": "#38bdf8",
         "sub": "10 animated stickers · the faces people actually pull, moving",
-        "after": 'Then in Peel: <strong>New pack</strong> → scroll down → <strong>Import a pack file</strong>.',
+        "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
         "section": "From the makers",
     },
     {
@@ -111,6 +120,7 @@ def sheet_html(pack, files, caps, size_kb):
   </div>
   <div class="sheet-foot">
     <a class="btn" href="packs/{slug}.peel" download>Download the sheet · {size_kb}</a>
+    <a class="btn ghost" href="{PEEL_IMPORT_LINK}">Open in Peel</a>
     <p class="how">{pack['after']}</p>
   </div>
 </section>"""
