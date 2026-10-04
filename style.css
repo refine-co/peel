@@ -1,66 +1,518 @@
+/* Peel — sticker site
+   Motion personality: Playful. Signature easing --spring, durations --quick/--base/--slow. */
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+
 :root {
   color-scheme: light dark;
-  --bg: #fbf9f6; --fg: #1c1a17; --muted: #6d665c; --accent: #d9601c;
-  --card: #ffffff; --line: rgba(120,110,95,.22);
+
+  /* paper + ink */
+  --bg: #fff6ec;
+  --fg: #221a2e;
+  --muted: #6f6480;
+  --paper: #fffdf8;
+  --card: #ffffff;
+  --line: rgba(60, 40, 90, .14);
+  --cut: rgba(90, 70, 120, .28);
+
+  /* the happy ramp */
+  --tangerine: #ff6b35;
+  --pink: #ff4d8d;
+  --lemon: #ffc93c;
+  --mint: #2ec4b6;
+  --grape: #7b5ea7;
+  --sky: #38bdf8;
+
+  --accent: var(--tangerine);
+  --shadow: 0 10px 30px rgba(80, 40, 20, .13);
+
+  /* motion */
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --out: cubic-bezier(.2, 0, 0, 1);
+  --quick: 140ms;
+  --base: 240ms;
+  --slow: 420ms;
 }
+
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #16150f; --fg: #ece7e0; --muted: #a39a8c; --accent: #ff9556;
-          --card: #201e16; --line: rgba(220,210,190,.16); }
+  :root {
+    --bg: #1a1230;
+    --fg: #f4edff;
+    --muted: #a99cc0;
+    --paper: #241b33;
+    --card: #1d1629;
+    --line: rgba(220, 200, 255, .14);
+    --cut: rgba(220, 200, 255, .22);
+    --shadow: 0 10px 34px rgba(0, 0, 0, .5);
+  }
 }
+
 * { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
 body {
-  margin: 0 auto; padding: 3rem 1.25rem 6rem; max-width: 52rem;
-  font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: var(--fg); background: var(--bg);
+  margin: 0;
+  padding: 0 0 5rem;
+  font: 17px/1.65 Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
-h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 .75rem; }
-h2 { font-size: 1.2rem; margin: 2.75rem 0 .6rem; }
-h3 { font-size: 1.02rem; margin: 0 0 .3rem; }
+
+/* ambient layer: slow drifting colour, the third motion layer */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -30vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(42vmax 42vmax at 10% 2%, color-mix(in srgb, var(--lemon) 85%, transparent), transparent 60%),
+    radial-gradient(38vmax 38vmax at 92% 10%, color-mix(in srgb, var(--pink) 68%, transparent), transparent 58%),
+    radial-gradient(44vmax 44vmax at 80% 70%, color-mix(in srgb, var(--mint) 62%, transparent), transparent 60%),
+    radial-gradient(36vmax 36vmax at 14% 78%, color-mix(in srgb, var(--sky) 60%, transparent), transparent 58%),
+    radial-gradient(30vmax 30vmax at 50% 42%, color-mix(in srgb, var(--grape) 34%, transparent), transparent 62%);
+  filter: blur(8px);
+  opacity: .8;
+  animation: drift 34s ease-in-out infinite alternate;
+}
+
+@media (prefers-color-scheme: dark) {
+  body::before { opacity: .6; }
+}
+
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(2vmax, -2vmax, 0) scale(1.08); }
+}
+
+.wrap { max-width: 64rem; margin: 0 auto; padding: 0 1.25rem; }
+.narrow { max-width: 46rem; }
+
+h1, h2, h3, .btn, .chip, nav a, .sheet-title {
+  font-family: Fredoka, Nunito, sans-serif;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+h1 { font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.05; margin: 0 0 1rem; font-weight: 700; }
+h2 { font-size: clamp(1.4rem, 3.4vw, 2rem); line-height: 1.15; margin: 3.5rem 0 1rem; }
+h3 { font-size: 1.1rem; margin: 0 0 .3rem; }
+p { margin: 0 0 1rem; }
 a { color: inherit; }
-.eyebrow { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; opacity: .65; letter-spacing: .04em; }
-.lede { font-size: 1.1rem; }
-.note { font-size: .9rem; color: var(--muted); }
-nav { margin: 0 0 2rem; font-size: .92rem; }
-nav a { margin-right: 1.1rem; }
-footer { margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: .9rem; color: var(--muted); }
-footer a { color: inherit; }
 
-.packs { display: grid; gap: 1.5rem; margin-top: 1rem; }
-.pack { background: var(--card); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
-.pack img { width: 100%; display: block; background: #fdf7ec; }
-.pack .body { padding: 1rem 1.15rem 1.25rem; }
-.pack .meta { font-size: .88rem; color: var(--muted); margin: .15rem 0 .85rem; }
-.get {
-  display: inline-block; padding: .6rem 1.1rem; border-radius: 999px;
-  background: var(--accent); color: #fff; text-decoration: none; font-weight: 600; font-size: .95rem;
+.lede { font-size: clamp(1.05rem, 2.2vw, 1.25rem); color: var(--muted); max-width: 38rem; }
+.note { font-size: .95rem; color: var(--muted); }
+.eyebrow {
+  display: inline-block;
+  font-family: Fredoka, sans-serif;
+  font-size: .78rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--grape);
+  background: color-mix(in srgb, var(--grape) 14%, transparent);
+  padding: .3rem .7rem;
+  border-radius: 999px;
 }
-.get:hover { filter: brightness(1.07); }
-.after { font-size: .85rem; color: var(--muted); margin: .7rem 0 0; }
 
-.pack .all { border-top: 1px solid var(--line); }
-.pack .all summary {
-  padding: .8rem 1.15rem; cursor: pointer; font-size: .9rem; font-weight: 600;
-  color: var(--accent); list-style: none;
-}
-.pack .all summary::-webkit-details-marker { display: none; }
-.pack .all summary::after { content: " \25be"; }
-.pack .all[open] summary::after { content: " \25b4"; }
-.pack .all summary:hover { filter: brightness(1.07); }
-.pack .grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: .9rem; padding: .25rem 1.15rem 1.25rem;
-}
-.pack .grid figure { margin: 0; text-align: center; }
-.pack .grid img {
-  width: 100%; height: auto; aspect-ratio: 1; border-radius: 10px;
-  background: #fdf7ec; border: 1px solid var(--line);
-}
-.pack .grid figcaption { font-size: .76rem; color: var(--muted); margin-top: .3rem; line-height: 1.3; }
-.pack .grid .emo { display: block; font-size: .85rem; }
+/* ---------- nav ---------- */
 
-ol.steps { padding-left: 1.2rem; }
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: .7rem 1.25rem;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar .row {
+  max-width: 64rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-family: Fredoka, sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  text-decoration: none;
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.brand .dot {
+  width: 1.5rem; height: 1.5rem; border-radius: 8px;
+  background: linear-gradient(135deg, var(--lemon), var(--tangerine) 55%, var(--pink));
+  transform: rotate(-8deg);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--tangerine) 45%, #000);
+}
+
+nav a {
+  text-decoration: none;
+  font-size: .93rem;
+  padding: .4rem .75rem;
+  border-radius: 999px;
+  color: var(--muted);
+  transition: color var(--quick) var(--out), background var(--quick) var(--out);
+}
+
+nav a:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 7%, transparent); }
+nav a[aria-current="page"] { color: var(--fg); background: color-mix(in srgb, var(--tangerine) 16%, transparent); }
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .8rem 1.4rem;
+  border-radius: 999px;
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 50%, #000), var(--shadow);
+  transition: transform var(--quick) var(--spring), box-shadow var(--quick) var(--out), filter var(--quick) var(--out);
+}
+
+.btn:hover { filter: brightness(1.06); transform: translateY(-2px); box-shadow: 0 6px 0 color-mix(in srgb, var(--accent) 50%, #000), var(--shadow); }
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 50%, #000); }
+
+.btn.ghost {
+  background: transparent;
+  color: var(--fg);
+  border: 2px solid var(--line);
+  box-shadow: none;
+}
+.btn.ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .82rem;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mint) 18%, transparent);
+  color: color-mix(in srgb, var(--mint) 70%, var(--fg));
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  padding: 3.5rem 0 1rem;
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 62rem) {
+  .hero { grid-template-columns: 1.05fr .95fr; padding: 4.5rem 0 1.5rem; }
+}
+
+.hero .cta { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.6rem; }
+.hero .chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1.4rem; }
+
+h1 .wave {
+  background: linear-gradient(100deg, var(--tangerine), var(--pink) 48%, var(--grape));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* the little sheet in the hero, with one sticker already lifted off it */
+.hero-art { position: relative; justify-self: center; }
+
+.mini-sheet {
+  display: grid;
+  grid-template-columns: repeat(3, 84px);
+  gap: .5rem;
+  padding: 1.1rem;
+  border-radius: 22px;
+  background: var(--paper);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  transform: rotate(-4deg);
+}
+
+.mini-sheet span {
+  aspect-ratio: 1;
+  border: 1.5px dashed var(--cut);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+}
+
+.mini-sheet img { width: 100%; height: 100%; object-fit: contain; }
+
+.hero-art .flyaway {
+  position: absolute;
+  right: -34px; top: -38px;
+  width: 128px; height: 128px;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 18px rgba(70, 40, 20, .32));
+  animation: float 5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: rotate(9deg) translateY(0); }
+  50%      { transform: rotate(5deg) translateY(-12px); }
+}
+
+/* ---------- marquee ---------- */
+
+.marquee {
+  margin: 2.5rem 0 0;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+
+.marquee .track {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  animation: slide 46s linear infinite;
+}
+
+.marquee img {
+  width: 92px; height: 92px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(80, 40, 20, .18));
+}
+
+.marquee:hover .track { animation-play-state: paused; }
+
+@keyframes slide {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ---------- the sticker sheet ---------- */
+
+.sheet {
+  position: relative;
+  margin: 1.5rem 0 3rem;
+  border-radius: 26px;
+  background: var(--paper);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  overflow: hidden;
+}
+
+/* printed header strip */
+.sheet-head {
+  padding: 1.2rem 1.4rem 1.1rem;
+  color: #fff;
+  background: linear-gradient(120deg, var(--c1), var(--c2));
+  position: relative;
+}
+
+.sheet-title { font-size: 1.5rem; margin: 0; line-height: 1.1; }
+.sheet-sub { margin: .25rem 0 0; font-size: .92rem; opacity: .92; }
+
+/* perforation between the header and the backing paper */
+.sheet-head::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -9px;
+  height: 18px;
+  background: radial-gradient(circle at 9px 9px, var(--paper) 7px, transparent 7.5px);
+  background-size: 22px 18px;
+}
+
+.sheet-body { position: relative; padding: 1.9rem 1.1rem 1.9rem; }
+
+/* registration marks, like a real printed sheet */
+.sheet-body::before,
+.sheet-body::after {
+  content: "";
+  position: absolute;
+  width: 14px; height: 14px;
+  background:
+    linear-gradient(var(--cut), var(--cut)) center/100% 1.5px no-repeat,
+    linear-gradient(var(--cut), var(--cut)) center/1.5px 100% no-repeat;
+  opacity: .7;
+}
+.sheet-body::before { left: 12px; bottom: 12px; }
+.sheet-body::after  { right: 12px; bottom: 12px; }
+
+.sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: .55rem;
+}
+
+.sheet-foot {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.4rem 1.5rem;
+  border-top: 1px dashed var(--cut);
+}
+
+.sheet-foot .how { font-size: .88rem; color: var(--muted); margin: 0; }
+
+/* ---------- one peelable sticker ---------- */
+
+.peel {
+  --p: 0;                                   /* peel progress, 0 to 1 */
+  --cutlen: calc(var(--p) * 54%);
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  border: 1.5px dashed var(--cut);          /* the kiss-cut line */
+  padding: 6px;
+  display: grid;
+  place-items: center;
+  touch-action: pan-y;
+  cursor: grab;
+  transform: rotate(var(--tilt, 0deg)) translate3d(calc(var(--p) * -4px), calc(var(--p) * -4px), 0);
+  transition: transform var(--base) var(--spring);
+}
+
+.peel.dragging { cursor: grabbing; transition: none; }
+.peel.dragging .face, .peel.dragging .curl { transition: none; }
+
+/* the ghost is the empty die-cut hole left on the backing paper */
+.peel .ghost {
+  position: absolute;
+  inset: 6px;
+  width: calc(100% - 12px); height: calc(100% - 12px);
+  object-fit: contain;
+  filter: brightness(0) saturate(0);
+  opacity: calc(var(--p) * .13);
+  pointer-events: none;
+}
+
+.peel .face {
+  position: relative;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  display: block;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cutlen)), calc(100% - var(--cutlen)) 100%, 0 100%);
+  filter: drop-shadow(calc(var(--p) * 5px) calc(var(--p) * 7px) calc(2px + var(--p) * 10px) rgba(70, 40, 20, calc(.12 + var(--p) * .22)));
+  transition: clip-path var(--base) var(--spring), filter var(--base) var(--out);
+}
+
+/* the flap: the back of the sticker, folded over itself */
+.peel .curl {
+  position: absolute;
+  right: 6px; bottom: 6px;
+  width: var(--cutlen); height: var(--cutlen);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #fbf7ef 30%, #e7e0d2 64%, #c3b9a6 100%);
+  border-top-left-radius: 5px;
+  filter: drop-shadow(-4px -4px 9px rgba(60, 35, 15, .38));
+  transition: width var(--base) var(--spring), height var(--base) var(--spring);
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .peel:not(.dragging):hover { --p: .34; z-index: 2; }
+}
+
+.peel:focus-visible {
+  --p: .34;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.peel .label {
+  position: absolute;
+  left: 50%; bottom: -1.3rem;
+  transform: translateX(-50%);
+  font-size: .72rem;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--quick) var(--out);
+  pointer-events: none;
+}
+
+.peel:hover .label, .peel:focus-visible .label { opacity: 1; }
+
+/* ---------- scroll reveal, micro cascade 40ms ---------- */
+
+/* uses the individual transform properties, not `transform`, so an element that
+   already has its own transform (a tilted sticker) keeps it */
+.reveal { opacity: 0; translate: 0 16px; scale: .94; }
+
+.reveal.in {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  transition:
+    opacity var(--slow) var(--out) var(--d, 0ms),
+    translate var(--slow) var(--spring) var(--d, 0ms),
+    scale var(--slow) var(--spring) var(--d, 0ms);
+}
+
+/* ---------- misc blocks ---------- */
+
+.page { padding-top: 3rem; }
+
+.cards { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+.card video { width: 100%; border-radius: 14px; display: block; background: #16150f; margin-bottom: .6rem; }
+
+.card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 1.3rem;
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+}
+
+.card .num {
+  display: grid; place-items: center;
+  width: 2.1rem; height: 2.1rem;
+  border-radius: 50%;
+  font-family: Fredoka, sans-serif; font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  margin-bottom: .7rem;
+}
+
+.empty {
+  border: 2px dashed var(--cut);
+  border-radius: 20px;
+  padding: 1.6rem;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
+}
+
+ol.steps { padding-left: 1.3rem; }
 ol.steps li { margin-bottom: .9rem; }
-.empty { border: 1px dashed var(--line); border-radius: 16px; padding: 1.25rem; color: var(--muted); font-size: .94rem; }
+
 table { border-collapse: collapse; width: 100%; margin-top: .5rem; display: block; overflow-x: auto; }
-th, td { text-align: left; vertical-align: top; padding: .55rem .7rem; border-bottom: 1px solid var(--line); font-size: .93rem; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+th, td { text-align: left; vertical-align: top; padding: .6rem .75rem; border-bottom: 1px solid var(--line); font-size: .94rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; background: color-mix(in srgb, var(--fg) 8%, transparent); padding: .1rem .35rem; border-radius: 5px; }
+
+footer {
+  margin-top: 4rem;
+  padding: 1.5rem 0 0;
+  border-top: 1px solid var(--line);
+  font-size: .92rem;
+  color: var(--muted);
+}
+
+/* ---------- accessibility ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  body::before, .marquee .track, .hero-art .flyaway { animation: none; }
+  .reveal { opacity: 1; translate: none; scale: none; }
+  .peel, .peel .face, .peel .curl { transition-duration: 1ms; }
+}

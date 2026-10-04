@@ -4,62 +4,107 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Peel — Sticker Maker</title>
-<style>
-  :root { color-scheme: light dark; }
-  body {
-    margin: 0 auto; padding: 3rem 1.25rem 6rem; max-width: 46rem;
-    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #1c1a17; background: #fbf9f6;
-  }
-  @media (prefers-color-scheme: dark) { body { color: #ece7e0; background: #16150f; } }
-  h1 { font-size: 1.9rem; line-height: 1.2; margin: 0 0 1rem; }
-  h2 { font-size: 1.15rem; margin: 2.5rem 0 .6rem; }
-  .eyebrow, .updated { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .8rem; opacity: .65; }
-  .lede { font-size: 1.1rem; }
-  table { border-collapse: collapse; width: 100%; margin-top: .5rem; display: block; overflow-x: auto; }
-  th, td { text-align: left; vertical-align: top; padding: .6rem .75rem; border-bottom: 1px solid rgba(128,128,128,.3); font-size: .95rem; }
-  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
-  a { color: inherit; }
-  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.4rem; margin-top: 1.2rem; }
-  .shot video { width: 100%; border-radius: 14px; display: block; background: #16150f; }
-  .shot p { margin: .55rem 0 0; font-size: .9rem; opacity: .75; }
-  .note { font-size: .9rem; opacity: .7; }
-</style>
+<meta name="description" content="Turn your photos into WhatsApp sticker packs in under a minute. The cut-out happens on your phone — Peel has no internet permission at all. Made in Malaysia.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Peel — Sticker Maker">
+<meta property="og:description" content="Photos into WhatsApp stickers, in under a minute, without the internet. Free sticker sheets too.">
+<meta property="og:image" content="https://refine-co.github.io/peel/packs/img/halloween/sheet.png">
+<meta property="og:url" content="https://refine-co.github.io/peel/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="style.css">
-<style>
-  nav { margin: 0 0 2rem; font-size: .92rem; }
-  nav a { margin-right: 1.1rem; }
-  .cta { display:inline-block; padding:.6rem 1.1rem; border-radius:999px; background:#d9601c; color:#fff; text-decoration:none; font-weight:600; font-size:.95rem; }
-  @media (prefers-color-scheme: dark) { .cta { background:#ff9556; color:#201e16; } }
-</style>
 </head>
 <body>
-<p class="eyebrow">RefineCo · Peel</p>
-<nav><a href="index.html">Peel</a><a href="packs.html">Sticker packs</a><a href="how-to-install.html">How to install</a><a href="submit.html">Share yours</a></nav>
-<h1>Peel – Sticker Maker</h1>
-<p class="lede">Turn your photos into WhatsApp sticker packs in under a minute. The cut-out happens on your phone. Made in Malaysia by RefineCo.</p>
-<p><a href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get it on Google Play</a></p>
 
-<h2>Free sticker packs</h2>
-<p>Packs made for Peel, free to download: a Halloween set and thirty reaction stickers.
-<a class="cta" href="packs.html">Browse the packs</a></p>
-<h2>See it work</h2>
-<p class="note">Three short films, recorded on a real phone. No sped-up footage.</p>
-<div class="shots">
-  <div class="shot">
-    <video src="video/photo.mp4" poster="video/photo.jpg" controls playsinline preload="none"></video>
-    <p>A photo becomes a sticker.</p>
+<header class="topbar">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="dot"></span>Peel</a>
+    <nav>
+      <a href="index.html" aria-current="page">The app</a>
+      <a href="packs.html">Sticker packs</a>
+      <a href="how-to-install.html">How to install</a>
+      <a href="submit.html">Share yours</a>
+    </nav>
   </div>
-  <div class="shot">
-    <video src="video/animated.mp4" poster="video/animated.jpg" controls playsinline preload="none"></video>
-    <p>A short video becomes a moving sticker.</p>
+</header>
+
+<main class="wrap">
+
+<section class="hero">
+  <div>
+    <p class="eyebrow">Made in Malaysia</p>
+    <h1>Your photos,<br><span class="wave">cut into stickers.</span></h1>
+    <p class="lede">Peel turns a photo into a WhatsApp sticker pack in under a minute. The cutting out happens on your phone — the app has no internet permission at all, so nothing can leave it.</p>
+    <div class="cta">
+      <a class="btn" href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get it on Google Play</a>
+      <a class="btn ghost" href="packs.html">Free sticker sheets</a>
+    </div>
+    <div class="chips">
+      <span class="chip">No account</span>
+      <span class="chip">No ads</span>
+      <span class="chip">No internet permission</span>
+    </div>
   </div>
-  <div class="shot">
-    <video src="video/text.mp4" poster="video/text.jpg" controls playsinline preload="none"></video>
-    <p>Thirty text stickers in one tap.</p>
+
+  <div class="hero-art" aria-hidden="true">
+    <div class="mini-sheet">
+      <span><img src="packs/img/halloween/stickers/02.webp" alt=""></span>
+      <span><img src="packs/img/say-it/stickers/01.webp" alt=""></span>
+      <span><img src="packs/img/halloween/stickers/14.webp" alt=""></span>
+      <span><img src="packs/img/reactions/stickers/03.webp" alt=""></span>
+      <span><img src="packs/img/halloween/stickers/19.webp" alt=""></span>
+      <span><img src="packs/img/say-it/stickers/09.webp" alt=""></span>
+    </div>
+    <img class="flyaway" src="packs/img/halloween/stickers/01.webp" alt="">
+  </div>
+</section>
+
+<h2>Why people keep it</h2>
+<div class="cards">
+  <div class="card reveal">
+    <div class="num" style="background:var(--tangerine)">1</div>
+    <h3>It cannot leak</h3>
+    <p class="note">Not "we promise not to upload". The <code>INTERNET</code> permission is absent from the app, so Android itself blocks any attempt. Check it in the Play Data safety entry.</p>
+  </div>
+  <div class="card reveal">
+    <div class="num" style="background:var(--pink)">2</div>
+    <h3>It is fast</h3>
+    <p class="note">Pick a photo, Peel finds the subject and cuts it out. Thirty text stickers come out of a single tap.</p>
+  </div>
+  <div class="card reveal">
+    <div class="num" style="background:var(--mint)">3</div>
+    <h3>Moving stickers too</h3>
+    <p class="note">A short video becomes an animated sticker, inside WhatsApp's size limit, without you thinking about it.</p>
   </div>
 </div>
 
-<p><a href="packs.html">Sticker packs</a> · <a href="privacy.html">Privacy policy</a> · <a href="terms.html">Terms of use</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a></p>
+<h2>Free sticker sheets</h2>
+<p>Three full sheets made for Peel — Halloween, animated reactions and a word pack. Sixty stickers, free, no account.</p>
+<div class="cta">
+  <a class="btn" href="packs.html">Browse the sheets</a>
+</div>
+
+<h2>See it work</h2>
+<p class="note">Three short films, recorded on a real phone. No sped-up footage.</p>
+<div class="cards">
+  <div class="card reveal">
+    <video src="video/photo.mp4" poster="video/photo.jpg" controls playsinline preload="none"></video>
+    <p class="note">A photo becomes a sticker.</p>
+  </div>
+  <div class="card reveal">
+    <video src="video/animated.mp4" poster="video/animated.jpg" controls playsinline preload="none"></video>
+    <p class="note">A short video becomes a moving sticker.</p>
+  </div>
+  <div class="card reveal">
+    <video src="video/text.mp4" poster="video/text.jpg" controls playsinline preload="none"></video>
+    <p class="note">Thirty text stickers in one tap.</p>
+  </div>
+</div>
+
+<footer>
+<a href="packs.html">Sticker packs</a> · <a href="how-to-install.html">How to install</a> · <a href="privacy.html">Privacy policy</a> · <a href="terms.html">Terms of use</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a>
+</footer>
+
+</main>
+<script src="peel.js" defer></script>
 </body>
 </html>
