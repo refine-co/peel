@@ -540,6 +540,10 @@ h1 .wave {
    so a piece that is down has to say it with one more class than that. */
 .tray .piece.down { opacity: .22; cursor: default; translate: none; }
 
+/* a free scene's sticker is not a button: there is nowhere for it to go */
+.piece.still { cursor: default; }
+.piece.still:hover { translate: none; border-color: var(--line); }
+
 /* Chill is not in a released build yet, so there is nothing to hand out but the truth */
 .soon {
   font-family: Fredoka, sans-serif;

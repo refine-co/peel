@@ -44,6 +44,14 @@ PEEL_IMPORT_LINK = (
 
 SCENES = [
     {
+        "slug": "cat-night-village",
+        "c1": "#243b55", "c2": "#f6b17a",
+        "sub": "28 stickers · cats, lanterns and a village street at night",
+        "blurb": "This one has no right answers. The stickers are cats and lanterns and little "
+                 "lit windows, and they go wherever you want them — the same picture comes out "
+                 "different every time.",
+    },
+    {
         "slug": "village-night",
         "c1": "#2b2d6e", "c2": "#f0a868",
         "sub": "37 pieces · a valley after dark, seven cottages and a stream",
@@ -57,6 +65,8 @@ SCENES = [
         "sub": "20 pieces · a wet alley, paper lanterns and the light on the ground",
         "blurb": "Rain falls on it while you work, and the puddles catch whatever you have "
                  "lit so far.",
+        "after": "Also built into Peel. This file is for sharing it with someone who has not "
+                 "installed the app yet.",
     },
     {
         "slug": "firefly-jar",
@@ -68,11 +78,17 @@ SCENES = [
 ]
 
 SECTION_INTRO = (
-    "A scene is a picture with its own stickers lifted out of it. You get an empty valley and "
-    "the things that belong in it, and you put them back — the far things first, so the near "
-    "ones land on top. Tap a piece below to put it down, or press "
-    "<strong>Fill it in</strong> and watch the picture come back."
+    "A scene is a picture that comes with its own stickers. Some are puzzles — the things in "
+    "the picture have been lifted out of it, and you put them back, the far ones first so the "
+    "near ones land on top. Tap a piece below to put it down, or press "
+    "<strong>Fill it in</strong> and watch the picture come back. Others are just a place and "
+    "a box of stickers, and nothing goes anywhere in particular."
 )
+
+# A scene whose stickers carry no `home` is not a puzzle: nothing has a place to go back to, so
+# the card shows the picture and the stickers and says so, rather than faking a fill.
+def is_puzzle(manifest):
+    return all(s.get("home") for s in manifest["stickers"])
 
 
 def read_scene(slug):
@@ -92,22 +108,27 @@ def read_scene(slug):
     return manifest, dest.stat().st_size
 
 
-def piece_html(slug, sticker, i):
-    """One piece in the tray, carrying the position it belongs at.
+def piece_html(slug, sticker, i, puzzle=True):
+    """One sticker in the tray.
 
-    The home is the centre of the piece and the scale is its longest side as a fraction of the
-    board's width, which is exactly what the square sticker file is letterboxed to — so the
-    ghost is placed by centring that square on the home at that width, same as the app.
+    In a puzzle it is a button carrying the position it belongs at: the home is the centre of
+    the piece and the scale is its longest side as a fraction of the board's width, which is
+    exactly what the square sticker file is letterboxed to — so the ghost is placed by centring
+    that square on the home at that width, same as the app. In a free scene it is just the
+    sticker, because there is nowhere in particular for it to go.
     """
     name = pathlib.Path(sticker["file"]).name
     alt = html.escape(sticker.get("accessibilityText", ""))
+    img = (f'        <img src="scenes/img/{slug}/stickers/{name}" alt="{"" if puzzle else alt}" '
+           f'loading="lazy" decoding="async">')
+    if not puzzle:
+        return f'      <div class="piece still">\n{img}\n      </div>'
     home = sticker["home"]
     return (
         f'      <button class="piece reveal" type="button" data-i="{i}"\n'
         f'              style="--x:{home["x"]};--y:{home["y"]};--s:{home["scale"]}"\n'
         f'              aria-label="Put this in place: {alt}">\n'
-        f'        <img src="scenes/img/{slug}/stickers/{name}" alt="" loading="lazy" '
-        f'decoding="async">\n'
+        f'{img}\n'
         f'      </button>'
     )
 
@@ -124,27 +145,43 @@ def ghost_html(slug, sticker, i):
 def scene_html(scene, manifest, size):
     slug = scene["slug"]
     stickers = manifest["stickers"]
+    puzzle = is_puzzle(manifest)
+
     # The authored order is the order the picture is built in, back to front. Keep it: it is
     # what makes the fill read as depth rather than as a shuffle.
-    pieces = "\n".join(piece_html(slug, s, i) for i, s in enumerate(stickers))
-    ghosts = "\n".join(ghost_html(slug, s, i) for i, s in enumerate(stickers))
+    pieces = "\n".join(piece_html(slug, s, i, puzzle) for i, s in enumerate(stickers))
+    ghosts = ("\n".join(ghost_html(slug, s, i) for i, s in enumerate(stickers))
+              if puzzle else "")
 
     size_txt = f"{size / 1024 / 1024:.1f} MB" if size > 1024 * 1024 else f"{size // 1024} KB"
-    done = html.escape(manifest.get("completion", {}).get("en", ""))
+    # Scenes written before the completion line existed fall back to Peel's own.
+    done = html.escape(manifest.get("completion", {}).get("en", "")
+                       or "Everything is where it belongs.")
+
+    tools = (
+        f'    <div class="scene-tools">\n'
+        f'      <button class="btn small fill" type="button">Fill it in</button>\n'
+        f'      <button class="btn small ghost clear" type="button" hidden>Empty it</button>\n'
+        f'      <span class="done" role="status" aria-live="polite" hidden>{done}</span>\n'
+        f'    </div>\n'
+    ) if puzzle else ""
+
+    note = scene.get("after", "Download first — <strong>Open in Peel</strong> then picks it "
+                              "up from your Downloads folder.")
 
     if DOWNLOADS_LIVE:
         foot = (
             f'    <a class="btn" href="scenes/{slug}.chill" download>'
             f'Download the scene · {size_txt}</a>\n'
             f'    <a class="btn ghost" href="{PEEL_IMPORT_LINK}">Open in Peel</a>\n'
-            f'    <p class="how">Download first — <strong>Open in Peel</strong> then picks it '
-            f'up from your Downloads folder.</p>'
+            f'    <p class="how">{note}</p>'
         )
     else:
+        extra = f' {scene["after"]}' if "after" in scene else ""
         foot = (
             f'    <span class="soon">Coming with the next update</span>\n'
             f'    <p class="how">Scenes need a version of Peel that is not out yet. '
-            f'The file is {size_txt} when it lands.</p>'
+            f'The file is {size_txt} when it lands.{extra}</p>'
         )
 
     return f"""<section class="scene" id="{slug}" style="--c1:{scene['c1']};--c2:{scene['c2']}">
@@ -158,12 +195,7 @@ def scene_html(scene, manifest, size):
 {ghosts}
     </div>
     <p class="scene-blurb">{scene['blurb']}</p>
-    <div class="scene-tools">
-      <button class="btn small fill" type="button">Fill it in</button>
-      <button class="btn small ghost clear" type="button" hidden>Empty it</button>
-      <span class="done" role="status" aria-live="polite" hidden>{done}</span>
-    </div>
-    <div class="tray">
+{tools}    <div class="tray">
 {pieces}
     </div>
   </div>
@@ -178,7 +210,8 @@ def main():
     for scene in SCENES:
         manifest, size = read_scene(scene["slug"])
         cards.append(scene_html(scene, manifest, size))
-        print(f"{scene['slug']}: {len(manifest['stickers'])} pieces, {size // 1024} KB")
+        kind = "puzzle" if is_puzzle(manifest) else "free placement"
+        print(f"{scene['slug']}: {len(manifest['stickers'])} stickers, {size // 1024} KB, {kind}")
 
     body = (
         '<h2 id="scenes">Scenes</h2>\n'
