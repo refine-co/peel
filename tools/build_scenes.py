@@ -227,6 +227,13 @@ def main():
         lambda _: "<!-- scenes:start -->\n" + body + "\n<!-- scenes:end -->",
         src, flags=re.S,
     )
+    # The hero chip counts them, so it cannot be left behind when a scene is added.
+    src = re.sub(
+        r'(<span class="chip"><a href="#scenes">)\d+ scenes(</a></span>)',
+        lambda m: f"{m.group(1)}{len(cards)} scenes{m.group(2)}",
+        src,
+    )
+
     page.write_text(src)
     total = sum(c.count('class="piece') for c in cards)
     print(f"\npacks.html: {len(cards)} scenes, {total} pieces"
