@@ -44,6 +44,89 @@
     el.addEventListener("pointercancel", release);
   });
 
+  /* ---- a scene fills itself in ----
+     Each piece carries the home the .chill gave it, and the board carries a ghost of every
+     piece already sitting at that home. Markup order is the order the picture is painted in,
+     back to front, so the ghosts stack correctly however you click them.
+
+     Without this script the ghosts are all visible, which is the finished picture. The script
+     adds .live, which takes them off and hands them to the tray. */
+
+  document.querySelectorAll(".scene").forEach(function (scene) {
+    var board = scene.querySelector(".board");
+    var pieces = Array.prototype.slice.call(scene.querySelectorAll(".piece"));
+    if (!board || !pieces.length) return;
+
+    var ghosts = {};
+    scene.querySelectorAll(".board .ghost").forEach(function (g) { ghosts[g.dataset.i] = g; });
+
+    var fill = scene.querySelector(".fill");
+    var empty = scene.querySelector(".clear");
+    var done = scene.querySelector(".done");
+    var placed = 0;
+    var timers = [];
+
+    scene.classList.add("live");
+
+    function check() {
+      if (fill) fill.hidden = placed === pieces.length;
+      if (empty) empty.hidden = placed === 0;
+      if (done) done.hidden = placed !== pieces.length;
+    }
+
+    function put(piece) {
+      var g = ghosts[piece.dataset.i];
+      if (!g || piece.classList.contains("down")) return;
+      g.classList.remove("peek");
+      g.classList.add("on");
+      piece.classList.add("down");
+      piece.setAttribute("aria-disabled", "true");
+      placed++;
+      check();
+    }
+
+    function reset() {
+      timers.forEach(clearTimeout);
+      timers = [];
+      pieces.forEach(function (piece) {
+        var g = ghosts[piece.dataset.i];
+        if (g) g.classList.remove("on", "peek");
+        piece.classList.remove("down");
+        piece.removeAttribute("aria-disabled");
+      });
+      placed = 0;
+      check();
+    }
+
+    pieces.forEach(function (piece) {
+      var g = ghosts[piece.dataset.i];
+
+      function peek(on) {
+        if (!g || piece.classList.contains("down")) return;
+        g.classList.toggle("peek", on);
+        g.classList.toggle("on", on);
+      }
+
+      piece.addEventListener("pointerenter", function () { peek(true); });
+      piece.addEventListener("pointerleave", function () { peek(false); });
+      piece.addEventListener("focus", function () { peek(true); });
+      piece.addEventListener("blur", function () { peek(false); });
+      piece.addEventListener("click", function () { put(piece); });
+    });
+
+    if (fill) fill.addEventListener("click", function () {
+      pieces.forEach(function (piece, i) {
+        if (piece.classList.contains("down")) return;
+        if (calm) return put(piece);
+        timers.push(setTimeout(function () { put(piece); }, i * 45));
+      });
+    });
+
+    if (empty) empty.addEventListener("click", reset);
+
+    check();
+  });
+
   /* ---- reveal on scroll, 40ms micro cascade ---- */
 
   if (calm || !("IntersectionObserver" in window)) {

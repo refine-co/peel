@@ -49,6 +49,9 @@
 
 * { box-sizing: border-box; }
 
+/* a class beats the UA sheet's [hidden], so say it louder */
+[hidden] { display: none !important; }
+
 html { scroll-behavior: smooth; }
 
 body {
@@ -302,7 +305,8 @@ h1 .wave {
 
 /* ---------- the sticker sheet ---------- */
 
-.sheet {
+.sheet,
+.scene {
   position: relative;
   margin: 1.5rem 0 3rem;
   border-radius: 26px;
@@ -444,6 +448,115 @@ h1 .wave {
 
 .peel:hover .label, .peel:focus-visible .label { opacity: 1; }
 
+/* ---------- a scene: a picture with its own stickers ----------
+   Not a sheet. A sheet is stickers to peel off and send; a scene is a picture to put back
+   together, so the card shows the empty board and drops the pieces into the exact homes the
+   .chill carries. Without JavaScript every piece is already on the board, which is the
+   finished picture — the script takes them off and hands them to you. */
+
+.scene-body {
+  display: grid;
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  padding: 1.9rem 1.4rem;
+}
+
+.board {
+  position: relative;
+  grid-row: 1 / span 3;   /* the blurb, the tools and the tray beside it */
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--line), 0 10px 22px rgba(60, 30, 80, .14);
+}
+
+.board .plate { display: block; width: 100%; height: auto; }
+
+/* home x/y is the centre of the piece and scale is its longest side across the board's width,
+   which is exactly what the square sticker file is letterboxed to — so centring that square on
+   the home at that width puts it where the app would. */
+.board .ghost {
+  position: absolute;
+  left: calc(var(--x) * 100%);
+  top: calc(var(--y) * 100%);
+  width: calc(var(--s) * 100%);
+  height: auto;
+  translate: -50% -50%;
+}
+
+.scene.live .board .ghost {
+  opacity: 0;
+  scale: 1.08;
+  transition: opacity var(--base) var(--out), scale var(--base) var(--spring);
+}
+
+.scene.live .board .ghost.on { opacity: 1; scale: 1; }
+
+/* a piece being pointed at, rather than put down for good */
+.scene.live .board .ghost.peek {
+  opacity: .94;
+  filter: drop-shadow(0 0 9px color-mix(in srgb, var(--c2) 70%, #fff));
+}
+
+.scene-blurb { margin: 0; font-size: .95rem; color: var(--muted); }
+
+.scene-tools { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+
+.btn.small { padding: .42rem .9rem; font-size: .9rem; box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 50%, #000); }
+.btn.small:hover { box-shadow: 0 5px 0 color-mix(in srgb, var(--accent) 50%, #000), var(--shadow); }
+.btn.small:active { box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 50%, #000); }
+
+.scene-tools .done {
+  font-family: Fredoka, sans-serif;
+  font-size: .95rem;
+  color: var(--c2);
+}
+
+/* the tray, which is where a scene's pieces wait */
+.tray {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.6rem, 1fr));
+  gap: .4rem;
+}
+
+.piece {
+  aspect-ratio: 1;
+  padding: .3rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  cursor: pointer;
+  transition: translate var(--base) var(--spring), border-color var(--quick) var(--out),
+              opacity var(--base) var(--out);
+}
+
+.piece img { width: 100%; height: 100%; object-fit: contain; }
+
+.piece:hover, .piece:focus-visible { translate: 0 -3px; border-color: var(--c2); outline: none; }
+.piece:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--c2) 45%, transparent); }
+.piece:active { translate: 0 -1px; }
+/* `.reveal.in` sets opacity:1 at the same specificity and sits further down the file,
+   so a piece that is down has to say it with one more class than that. */
+.tray .piece.down { opacity: .22; cursor: default; translate: none; }
+
+/* Chill is not in a released build yet, so there is nothing to hand out but the truth */
+.soon {
+  font-family: Fredoka, sans-serif;
+  font-size: .95rem;
+  padding: .45rem .85rem;
+  border-radius: 999px;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--lemon) 40%, var(--paper));
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+@media (max-width: 40rem) {
+  .scene-body { grid-template-columns: 1fr; }
+  .scene-body { grid-template-rows: none; }
+  .board { grid-row: auto; justify-self: center; max-width: 18rem; }
+}
+
 /* ---------- scroll reveal, micro cascade 40ms ---------- */
 
 /* uses the individual transform properties, not `transform`, so an element that
@@ -515,6 +628,7 @@ footer {
   body::before, .marquee .track, .hero-art .flyaway { animation: none; }
   .reveal { opacity: 1; translate: none; scale: none; }
   .peel, .peel .face, .peel .curl { transition-duration: 1ms; }
+  .scene.live .board .ghost, .piece { transition-duration: 1ms; }
 }
 
 /* ---------- guide pages (how-to-install, submit) ----------
