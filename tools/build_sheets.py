@@ -41,6 +41,15 @@ PACKS = [
         "section": "Festive",
     },
     {
+        "slug": "halloween-night",
+        "title": "Halloween Night",
+        "spec": "halloween-night.json",
+        "c1": "#3f3d7a", "c2": "#c084fc",
+        "sub": "20 stickers \u00b7 a mummy, a skeleton, a spider, a werewolf pup and a potion cauldron",
+        "after": 'Download first \u2014 <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
         "slug": "reactions",
         "title": "Reactions",
         "spec": "humans-captions.json",
