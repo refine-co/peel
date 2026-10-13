@@ -21,6 +21,7 @@ import json
 import pathlib
 import re
 import zipfile
+from urllib.parse import quote
 
 SITE = pathlib.Path(__file__).resolve().parent.parent
 SCENES_DIR = SITE / "scenes"
@@ -34,13 +35,21 @@ SOURCE = pathlib.Path.home() / "Documents/refineco/projects/sticker-app/scenes"
 # Flip this to True on the day Chill is on Play and re-run; nothing else needs to change.
 DOWNLOADS_LIVE = False
 
-# Same deep link the sheets use. MainActivity's PACK_FILE_TYPES already accepts the chill type,
-# so this button needs no app change once Chill is out.
-PEEL_IMPORT_LINK = (
-    "intent://import#Intent;scheme=peel;package=my.refineco.peel;"
-    "S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails"
-    "%3Fid%3Dmy.refineco.peel;end"
-)
+# Same deep link the sheets use, and since Peel 2.0.0 it carries the file's own URL so Peel
+# fetches the scene itself instead of opening a file picker. See build_sheets.peel_import_link
+# for the whole story; this is the same function, kept local because these two scripts share
+# nothing else.
+SITE_URL = "https://peel.refineco.app"
+
+
+def peel_import_link(path):
+    """The intent link that hands Peel the file at `path` on this site."""
+    url = quote(f"{SITE_URL}/{path}", safe="")
+    return (
+        f"intent://import?url={url}#Intent;scheme=peel;package=my.refineco.peel;"
+        "S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails"
+        "%3Fid%3Dmy.refineco.peel;end"
+    )
 
 SCENES = [
     {
@@ -161,11 +170,12 @@ def scene_html(scene, manifest, size):
     note = scene.get("after", "Download first — <strong>Open in Peel</strong> then picks it "
                               "up from your Downloads folder.")
 
+    link = peel_import_link(f"scenes/{slug}.chill")
     if DOWNLOADS_LIVE:
         foot = (
             f'    <a class="btn" href="scenes/{slug}.chill" download>'
             f'Download the scene · {size_txt}</a>\n'
-            f'    <a class="btn ghost" href="{PEEL_IMPORT_LINK}">Open in Peel</a>\n'
+            f'    <a class="btn ghost" href="{link}">Open in Peel</a>\n'
             f'    <p class="how">{note}</p>'
         )
     else:

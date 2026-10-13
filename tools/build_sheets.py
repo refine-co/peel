@@ -16,19 +16,36 @@ import re
 import subprocess
 import sys
 import zipfile
+from urllib.parse import quote
 
 SITE = pathlib.Path(__file__).resolve().parent.parent
 SPECS = pathlib.Path.home() / "Projects/android-peel/tools/packs/site"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
-# Opens Peel straight on its pack picker, in Downloads, where the browser just put the file.
-# Peel has no internet permission, so it cannot fetch the pack itself — the browser does that
-# first and Peel reads it from storage. Falls back to the Play listing when Peel is missing.
-PEEL_IMPORT_LINK = (
-    "intent://import#Intent;scheme=peel;package=my.refineco.peel;"
-    "S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails"
-    "%3Fid%3Dmy.refineco.peel;end"
-)
+# "Open in Peel", which since Peel 2.0.0 means what it says: the link carries the file's own
+# URL and Peel fetches it (PackDownloader — HTTPS, this host only, downloads only). Before
+# 2.0.0 Peel had no network permission, so the same link could only open its file picker and
+# hope the person found what the browser had just downloaded, which felt as bad as it sounds.
+#
+# Older installs ignore the query and still get the picker, so this is safe to publish ahead of
+# 2.0.0 reaching Play. What is NOT safe yet is promoting this to the primary button and
+# dropping the "download first" line — do that once 2.0.0 is live, or people on 1.7.1 get the
+# picker with no instructions.
+#
+# The package is pinned to the release application id, so a debug build can never receive it,
+# and browser_fallback_url sends anyone without Peel to the listing.
+SITE_URL = "https://peel.refineco.app"
+
+
+def peel_import_link(path):
+    """The intent link that hands Peel the file at `path` on this site."""
+    url = quote(f"{SITE_URL}/{path}", safe="")
+    return (
+        f"intent://import?url={url}#Intent;scheme=peel;package=my.refineco.peel;"
+        "S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails"
+        "%3Fid%3Dmy.refineco.peel;end"
+    )
+
 
 PACKS = [
     {
@@ -117,6 +134,7 @@ def sheet_html(pack, files, caps, size_kb):
         sticker(slug, f, c, a, e, i) for i, (f, (c, a, e)) in enumerate(zip(files, caps))
     )
     head = f'<h2 id="{slug}-h">{pack["section"]}</h2>\n' if pack["section"] else ""
+    link = peel_import_link(f"packs/{slug}.peel")
     return f"""{head}<section class="sheet" id="{slug}" style="--c1:{pack['c1']};--c2:{pack['c2']}">
   <div class="sheet-head">
     <h3 class="sheet-title">{html.escape(pack['title'])}</h3>
@@ -129,7 +147,7 @@ def sheet_html(pack, files, caps, size_kb):
   </div>
   <div class="sheet-foot">
     <a class="btn" href="packs/{slug}.peel" download>Download the sheet · {size_kb}</a>
-    <a class="btn ghost" href="{PEEL_IMPORT_LINK}">Open in Peel</a>
+    <a class="btn ghost" href="{link}">Open in Peel</a>
     <p class="how">{pack['after']}</p>
   </div>
 </section>"""
