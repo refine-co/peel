@@ -44,14 +44,6 @@ PEEL_IMPORT_LINK = (
 
 SCENES = [
     {
-        "slug": "cat-night-village",
-        "c1": "#243b55", "c2": "#f6b17a",
-        "sub": "28 stickers · cats, lanterns and a village street at night",
-        "blurb": "This one has no right answers. The stickers are cats and lanterns and little "
-                 "lit windows, and they go wherever you want them — the same picture comes out "
-                 "different every time.",
-    },
-    {
         "slug": "village-night",
         "c1": "#2b2d6e", "c2": "#f0a868",
         "sub": "37 pieces · a valley after dark, seven cottages and a stream",
@@ -63,8 +55,9 @@ SCENES = [
         "slug": "lantern-alley",
         "c1": "#5b2c6f", "c2": "#ffb347",
         "sub": "20 pieces · a wet alley, paper lanterns and the light on the ground",
-        "blurb": "Rain falls on it while you work, and the puddles catch whatever you have "
-                 "lit so far.",
+        "blurb": "Five chapters, far to near: the end of the alley, then the walls, then what "
+                 "hangs over the street, then what stands on it, and the sleeping cat last. "
+                 "Rain falls while you work, and the puddles catch whatever you have lit.",
         "after": "Also built into Peel. This file is for sharing it with someone who has not "
                  "installed the app yet.",
     },
@@ -78,11 +71,10 @@ SCENES = [
 ]
 
 SECTION_INTRO = (
-    "A scene is a picture that comes with its own stickers. Some are puzzles — the things in "
-    "the picture have been lifted out of it, and you put them back, the far ones first so the "
-    "near ones land on top. Tap a piece below to put it down, or press "
-    "<strong>Fill it in</strong> and watch the picture come back. Others are just a place and "
-    "a box of stickers, and nothing goes anywhere in particular."
+    "A scene is a picture with its own stickers lifted out of it. You get the empty place and "
+    "the things that belong in it, and you put them back — the far ones first, so the near ones "
+    "land on top. Tap a piece below to put it down, or press <strong>Fill it in</strong> and "
+    "watch the picture come back."
 )
 
 # A scene whose stickers carry no `home` is not a puzzle: nothing has a place to go back to, so
