@@ -169,11 +169,15 @@ def scene_html(scene, manifest, size):
             f'    <p class="how">{note}</p>'
         )
     else:
-        extra = f' {scene["after"]}' if "after" in scene else ""
+        # The "after" line is deliberately dropped here. It describes what the downloaded file
+        # is for — Lantern Alley's reads "Also built into Peel. This file is for sharing it
+        # with someone who has not installed the app yet" — and printed under "needs a version
+        # of Peel that is not out yet" it contradicts itself twice over: the scene is not in
+        # the shipping app, and there is no file to share. It comes back with the downloads.
         foot = (
             f'    <span class="soon">Coming with the next update</span>\n'
             f'    <p class="how">Scenes need a version of Peel that is not out yet. '
-            f'The file is {size_txt} when it lands.{extra}</p>'
+            f'The file is {size_txt} when it lands.</p>'
         )
 
     return f"""<section class="scene" id="{slug}" style="--c1:{scene['c1']};--c2:{scene['c2']}">
