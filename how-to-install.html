@@ -226,12 +226,18 @@ Android 10 or newer. Everything else on this page works with the version you hav
   </div>
 </div>
 
-<h2>Why a file, and not a button inside the app</h2>
-<p>Peel has no internet permission at all. Not switched off — absent. You can see that for yourself
-in the app's permission list and in its Play Data safety entry. That is the whole point of Peel:
-your photos cannot be uploaded anywhere, because the app has no way to reach the network. The cost
-of that promise is this one: packs arrive as a file your browser downloads, rather than from inside
-the app.</p>
+<h2>What Peel does with the internet</h2>
+<p>One thing: it downloads the pack or scene you tapped. That is the only request Peel's own code
+makes, it only ever goes to <a href="https://peel.refineco.app/">peel.refineco.app</a>, and it
+cannot be pointed somewhere else — Peel refuses a redirect, refuses anything that is not a pack or
+a scene, and refuses a file over 8&nbsp;MB. Google's own parts — the cut-out model, the Play rating
+sheet, Play Billing — use the network as they do in any app, and none of them is given your
+pictures.</p>
+<p><strong>Nothing goes the other way.</strong> Your photos are cut out on your phone and your
+stickers stay there. There is no account, no upload and no server holding your work. Before version
+2.0.0 the app had no internet permission at all and packs had to arrive through your Downloads
+folder; the permission exists to remove that detour, not to change what leaves your phone, which is
+still nothing. The <a href="privacy.html">privacy policy</a> says the same in more detail.</p>
 
 <footer>
 <a href="packs.html">Sticker packs</a> · <a href="privacy.html">Privacy policy</a> · <a href="terms.html">Terms of use</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a>
