@@ -30,10 +30,11 @@ SCENES_DIR = SITE / "scenes"
 # holds everything it serves.
 SOURCE = pathlib.Path.home() / "Documents/refineco/projects/sticker-app/scenes"
 
-# Chill is not in a released build yet: the shipped Peel's importer has no .chill type, so a
-# download today ends in a rejection toast. The cards go up without a download until it ships.
-# Flip this to True on the day Chill is on Play and re-run; nothing else needs to change.
-DOWNLOADS_LIVE = False
+# Flipped True on 14 Oct 2026, the day Peel 2.0.0 (versionCode 15) went live on Play with Chill
+# and the URL importer. Before that the shipped Peel had no .chill type, so a download ended in
+# a rejection toast and the cards went up without one. Someone still on 1.7.1 will see that old
+# toast until they update, which full rollout shrinks by the day.
+DOWNLOADS_LIVE = True
 
 # Same deep link the sheets use, and since Peel 2.0.0 it carries the file's own URL so Peel
 # fetches the scene itself instead of opening a file picker. See build_sheets.peel_import_link
