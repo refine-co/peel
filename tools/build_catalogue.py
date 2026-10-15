@@ -50,6 +50,13 @@ BASE = "https://peel.refineco.app"
 # and every older install greys it out with a reason instead of downloading it and failing.
 NEEDS = {"pack": 1, "scene": 15}
 
+# One file that needs more than its kind's floor. A paid pack belongs here on the day it is
+# published: FreeContent is compiled into the app, so a build released before the pack existed
+# has never heard of its fingerprint and would hand it over for nothing. Naming the release
+# that does know it means every older install greys the card out with "Update Peel to get
+# this" instead -- which is the wrong-in-the-harmless-direction failure.
+NEEDS_BY_ID: dict[str, int] = {}
+
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
 # be a five-fold upscale; WebP with alpha because pack trays are cut-outs and a white box
 # behind a sticker is the failure this is meant to avoid.
@@ -80,7 +87,8 @@ def inline_thumb(path: pathlib.Path, inner: str, alpha: bool) -> str:
 
 def pack_entry(path: pathlib.Path) -> dict:
     with zipfile.ZipFile(path) as z:
-        manifest = json.loads(z.read("manifest.json"))
+        raw = z.read("manifest.json")
+        manifest = json.loads(raw)
     return {
         "id": path.stem,
         "kind": "pack",
@@ -91,6 +99,12 @@ def pack_entry(path: pathlib.Path) -> dict:
         "size": human(path.stat().st_size),
         "file": f"{BASE}/packs/{path.name}",
         "thumb": f"catalogue/{path.stem}.png",
+        # Packs carry a fingerprint for the same reason scenes do, now that a pack can be sold:
+        # the grid has to be able to say the price before the download rather than after it.
+        # The app decides free or paid from this through FreeContent, never from what this file
+        # claims — and a pack whose entry carries no fingerprint says nothing about price at
+        # all, which is why this is not optional for a pack that is published.
+        "manifestSha256": hashlib.sha256(raw).hexdigest(),
     }
 
 
@@ -163,7 +177,7 @@ def main() -> None:
         inner = "tray.png" if entry["kind"] == "pack" else (
             json.loads(zipfile.ZipFile(src).read("scene.json")).get("thumbnail", "thumb.jpg"))
         item = {k: v for k, v in entry.items() if k != "thumb"}
-        item["needs"] = NEEDS[entry["kind"]]
+        item["needs"] = NEEDS_BY_ID.get(entry["id"], NEEDS[entry["kind"]])
         item["thumb"] = inline_thumb(src, inner, alpha=entry["kind"] == "pack")
         overlay.append(item)
 
