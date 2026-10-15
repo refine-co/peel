@@ -72,6 +72,19 @@ SCENES = [
                  "installed the app yet.",
     },
     {
+        "slug": "knock-twice",
+        "c1": "#1b2340", "c2": "#f5a623",
+        "sub": "40 pieces · a dark cottage, and everything you hang on it",
+        "blurb": "The only scene that is not about putting something back. The house is "
+                 "painted undressed and stays that way for eleven months of the year; "
+                 "Halloween is what you build on it. Forty pieces, from the pumpkins on the "
+                 "path to the witch crossing the moon.",
+        # The first scene behind the unlock. The card has to say so before the download
+        # button, not after it: a file that downloads and then will not open is the worst
+        # possible way to learn the price.
+        "paid": True,
+    },
+    {
         "slug": "firefly-jar",
         "c1": "#1f4037", "c2": "#4fc9a0",
         "sub": "14 pieces · a jar on a porch rail and the garden it lights",
@@ -170,6 +183,13 @@ def scene_html(scene, manifest, size):
 
     note = scene.get("after", "Download first — <strong>Open in Peel</strong> then picks it "
                               "up from your Downloads folder.")
+    if scene.get("paid"):
+        note = ("This one needs Peel unlocked — a single purchase, once, that opens every "
+                "paid scene and pack. The file downloads either way, and waits in Chill "
+                "until it is.")
+
+    badge = (' <span class="chip paid">Needs the unlock</span>'
+             if scene.get("paid") else "")
 
     link = peel_import_link(f"scenes/{slug}.chill")
     if DOWNLOADS_LIVE:
@@ -193,7 +213,7 @@ def scene_html(scene, manifest, size):
 
     return f"""<section class="scene" id="{slug}" style="--c1:{scene['c1']};--c2:{scene['c2']}">
   <div class="sheet-head">
-    <h3 class="sheet-title">{html.escape(manifest['name'])}</h3>
+    <h3 class="sheet-title">{html.escape(manifest['name'])}{badge}</h3>
     <p class="sheet-sub">{scene['sub']}</p>
   </div>
   <div class="scene-body">

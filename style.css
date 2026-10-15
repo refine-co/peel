@@ -211,6 +211,19 @@ nav a[aria-current="page"] { color: var(--fg); background: color-mix(in srgb, va
   color: color-mix(in srgb, var(--mint) 70%, var(--fg));
 }
 
+/* A scene behind the unlock. Tangerine rather than mint, because mint is what every free
+   thing on this page already wears, and the one thing this chip must not do is read as
+   another reassurance. Sized down and set beside the title, so it is part of the name. */
+.chip.paid {
+  background: color-mix(in srgb, var(--tangerine) 16%, transparent);
+  color: color-mix(in srgb, var(--tangerine) 75%, var(--fg));
+  font-size: .68rem;
+  padding: .22rem .55rem;
+  vertical-align: .18em;
+  margin-left: .5rem;
+  letter-spacing: .01em;
+}
+
 /* ---------- hero ---------- */
 
 .hero {
