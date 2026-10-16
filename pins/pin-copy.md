@@ -30,8 +30,21 @@ to publish, not as proof of an audience.
 
 ## Pins
 
-Each pin uses the 1000x1500 image already built at `packs/img/<pack>/pin.png`, and links to
-`https://refine-co.github.io/peel/packs.html`.
+Each pin uses the 1000x1500 image already built at `packs/img/<pack>/pin.png`, and links to its
+**own pack** on the packs page:
+
+| Pin | Link |
+|---|---|
+| Peel Halloween | `https://peel.refineco.app/packs.html#halloween` |
+| Say it | `https://peel.refineco.app/packs.html#say-it` |
+| Reactions | `https://peel.refineco.app/packs.html#reactions` |
+| Halloween Night | `https://peel.refineco.app/packs.html#halloween-night` |
+
+Two things changed here on 16 Oct 2026. The host was still `refine-co.github.io/peel`, which only
+reaches the site through a redirect. And the links carried **no fragment at all**, which did not
+matter while every pack was laid out on one page — it does now that the page opens on one pack and
+the rest wait in the rail. A Halloween pin that lands on the Halloween sheet keeps the promise the
+picture made; Pinterest demotes a pin whose landing page does not.
 
 ### Peel Halloween
 

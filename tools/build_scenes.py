@@ -21,6 +21,8 @@ import json
 import pathlib
 import re
 import zipfile
+
+from PIL import Image
 from urllib.parse import quote
 
 SITE = pathlib.Path(__file__).resolve().parent.parent
@@ -162,6 +164,12 @@ def scene_html(scene, manifest, size):
     stickers = manifest["stickers"]
     puzzle = is_puzzle(manifest)
 
+    # The board's real pixel size, written onto the <img>. A closed scene has never loaded its
+    # board, so without this the board is zero-height at the moment it opens and the page jumps
+    # when a 300-500 KB JPEG lands on it.
+    with Image.open(SITE / f"scenes/img/{slug}/board.jpg") as plate:
+        bw, bh = plate.size
+
     # The authored order is the order the picture is built in, back to front. Keep it: it is
     # what makes the fill read as depth rather than as a shuffle.
     pieces = "\n".join(piece_html(slug, s, i, puzzle) for i, s in enumerate(stickers))
@@ -218,7 +226,7 @@ def scene_html(scene, manifest, size):
   </div>
   <div class="scene-body">
     <div class="board" aria-hidden="true">
-      <img class="plate" src="scenes/img/{slug}/board.jpg" alt="" loading="lazy" decoding="async">
+      <img class="plate" src="scenes/img/{slug}/board.jpg" alt="" width="{bw}" height="{bh}" loading="lazy" decoding="async">
 {ghosts}
     </div>
     <p class="scene-blurb">{scene['blurb']}</p>

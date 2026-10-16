@@ -127,6 +127,173 @@
     check();
   });
 
+  /* ---- the rail: swipe sideways, the middle card is the open section ----
+     Eight sections laid out at once made the page 35,821 px tall. Now the rail is the index
+     and exactly one section is in the layout. The snapping is the browser's; this only reads
+     which card ended up in the middle and swaps the section under it.
+
+     This block sits BEFORE the reduced-motion return below on purpose: a visitor who asked
+     for less motion still gets the short page. */
+
+  (function () {
+    var rail = document.getElementById("rail");
+    if (!rail) return;                       // every other page shares this script
+
+    var cards = Array.prototype.slice.call(rail.querySelectorAll(".pcard"));
+    if (!cards.length) return;
+
+    var sections = {};
+    cards.forEach(function (card) {
+      var el = document.getElementById(card.dataset.for);
+      if (el) sections[card.dataset.for] = el;
+    });
+
+    // The group headings and the scenes note sit outside every section, so hiding only the
+    // sections would leave "Festive" and "From the makers" standing over nothing, and a
+    // paragraph telling the reader to tap a piece that is not there.
+    var headings = ["halloween-h", "reactions-h", "scenes"].map(function (id) {
+      return document.getElementById(id);
+    }).filter(Boolean);
+    var scenesNote = (function () {
+      var h = document.getElementById("scenes");
+      var n = h && h.nextElementSibling;
+      return n && n.classList.contains("note") ? n : null;
+    })();
+    headings.forEach(function (h) { h.hidden = true; });
+
+    var prev = document.querySelector(".rail-arrow.prev");
+    var next = document.querySelector(".rail-arrow.next");
+    var open = null;
+
+    function show(slug, focus) {
+      if (!sections[slug] || slug === open) return;
+      Object.keys(sections).forEach(function (key) {
+        sections[key].hidden = key !== slug;
+      });
+      cards.forEach(function (card) {
+        var on = card.dataset.for === slug;
+        card.classList.toggle("is-on", on);
+        card.setAttribute("aria-selected", on ? "true" : "false");
+        card.tabIndex = on ? 0 : -1;
+      });
+      if (scenesNote) scenesNote.hidden = !sections[slug].classList.contains("scene");
+      open = slug;
+      // replaceState, not pushState: a swipe is not a page, and eight of them should not
+      // bury the way back to wherever the visitor came from.
+      history.replaceState(null, "", "#" + slug);
+      if (focus) {
+        sections[slug].tabIndex = -1;
+        sections[slug].focus({ preventScroll: true });
+        sections[slug].scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+      }
+    }
+
+    function centre(card, smooth) {
+      var to = card.offsetLeft - (rail.clientWidth - card.offsetWidth) / 2;
+      rail.scrollTo({ left: to, behavior: smooth && !calm ? "smooth" : "auto" });
+    }
+
+    function nearest() {
+      var mid = rail.scrollLeft + rail.clientWidth / 2;
+      var best = cards[0], gap = Infinity;
+      cards.forEach(function (card) {
+        var d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
+        if (d < gap) { gap = d; best = card; }
+      });
+      return best;
+    }
+
+    function arrows() {
+      if (!prev || !next) return;
+      var i = cards.indexOf(nearest());
+      prev.hidden = next.hidden = false;
+      prev.disabled = i <= 0;
+      next.disabled = i >= cards.length - 1;
+    }
+
+    var settle;
+    rail.addEventListener("scroll", function () {
+      clearTimeout(settle);
+      settle = setTimeout(function () {
+        show(nearest().dataset.for, false);
+        arrows();
+      }, 90);
+    }, { passive: true });
+
+    cards.forEach(function (card) {
+      card.addEventListener("click", function () {
+        centre(card, true);
+        show(card.dataset.for, true);
+        arrows();
+      });
+      card.addEventListener("focus", function () { centre(card, true); });
+    });
+
+    function step(by) {
+      var i = cards.indexOf(nearest()) + by;
+      if (i < 0 || i >= cards.length) return;
+      centre(cards[i], true);
+      show(cards[i].dataset.for, false);
+      cards[i].tabIndex = 0;
+      cards[i].focus({ preventScroll: true });
+      arrows();
+    }
+
+    if (prev) prev.addEventListener("click", function () { step(-1); });
+    if (next) next.addEventListener("click", function () { step(1); });
+
+    rail.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
+    });
+
+    /* Which one to open on arrival. #halloween is the hero's "See the sheets" button and
+       #scenes is a chip over an <h2> that is not a section, so it means "the first scene". */
+    function wanted() {
+      var hash = (location.hash || "").slice(1);
+      if (sections[hash]) return hash;
+      if (hash === "scenes" || hash === "reactions-h" || hash === "halloween-h") {
+        var want = hash === "scenes";
+        for (var i = 0; i < cards.length; i++) {
+          var el = sections[cards[i].dataset.for];
+          if (el && el.classList.contains("scene") === want) return cards[i].dataset.for;
+        }
+      }
+      return cards[0].dataset.for;
+    }
+
+    // The document is about to lose 30,000 px of height, and the browser has already tried to
+    // restore a scroll position against the tall version.
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
+    var first = wanted();
+    show(first, false);
+    function recentre() {
+      cards.forEach(function (card) {
+        if (card.dataset.for === open) centre(card, false);
+      });
+    }
+    recentre();
+    // Again once the layout has settled: the first pass runs before the web font has swapped
+    // and before the open section's images have sizes, and either can move the track.
+    requestAnimationFrame(recentre);
+    window.addEventListener("load", recentre);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(recentre);
+    arrows();
+    if (location.hash) {
+      sections[first].scrollIntoView({ block: "start", behavior: "auto" });
+    }
+
+    window.addEventListener("hashchange", function () {
+      var slug = wanted();
+      show(slug, true);
+      cards.forEach(function (card) {
+        if (card.dataset.for === slug) centre(card, true);
+      });
+      arrows();
+    });
+  })();
+
   /* ---- reveal on scroll, 40ms micro cascade ---- */
 
   if (calm || !("IntersectionObserver" in window)) {

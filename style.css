@@ -739,3 +739,118 @@ footer {
 .try p { margin: 0; font-size: .92rem; color: var(--muted); max-width: 22rem; }
 
 .guide .cta { margin: 1.6rem 0 0; display: flex; gap: .7rem; flex-wrap: wrap; }
+
+/* ---------- the rail: one card per pack, the middle one is the open one ----------
+   The page used to lay all eighty stickers out at once. Now the rail is the index and
+   exactly one section is open under it. Snapping is the browser's, not a library's, so a
+   swipe keeps the momentum the platform gives it. */
+
+.rail-wrap { position: relative; margin: 1.25rem 0 .5rem; }
+
+.rail {
+  display: flex;
+  gap: .75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: .75rem 0 1rem;
+  /* the rail scrolls sideways; the page must not follow it */
+  overscroll-behavior-x: contain;
+}
+.rail::-webkit-scrollbar { display: none; }
+.rail:focus-visible { outline: 3px solid var(--c2, #ff6b35); outline-offset: 4px; border-radius: 20px; }
+
+/* so the first and last card can reach the middle of the track */
+.rail-end { flex: 0 0 calc(50% - 5.5rem); }
+
+.pcard {
+  flex: 0 0 11rem;
+  scroll-snap-align: center;
+  display: grid;
+  gap: .5rem;
+  padding: .75rem .75rem .9rem;
+  border: 0;
+  border-radius: 20px;
+  background: var(--paper);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  font: inherit;
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  scale: .86;
+  opacity: .58;
+  transition: scale var(--base) var(--spring), opacity var(--base) var(--out),
+              box-shadow var(--base) var(--out);
+}
+
+.pcard-art {
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  padding: .5rem;
+  background: linear-gradient(120deg, var(--c1), var(--c2));
+}
+.pcard-art img { width: 100%; height: auto; max-width: 96px; display: block; }
+
+.pcard-body { display: grid; gap: .15rem; }
+.pcard-title { font-family: Fredoka, sans-serif; font-weight: 600; font-size: 1.02rem; line-height: 1.15; }
+.pcard-meta { font-size: .85rem; color: var(--muted); }
+.pcard-marks { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .2rem; min-height: 1.4rem; }
+.pcard-marks .mark {
+  font-size: .72rem;
+  padding: .12rem .45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c2) 22%, var(--paper));
+  box-shadow: 0 0 0 1px var(--line);
+}
+.pcard-marks .mark.paid { background: color-mix(in srgb, var(--lemon) 55%, var(--paper)); }
+
+/* the one in the middle */
+.pcard.is-on { scale: 1; opacity: 1; box-shadow: var(--shadow), 0 0 0 2px var(--c2); }
+
+.rail-arrow {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 3;
+  width: 2.5rem; height: 2.5rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  font-size: 1.5rem; line-height: 1;
+  color: var(--fg);
+  cursor: pointer;
+}
+.rail-arrow.prev { left: -.4rem; }
+.rail-arrow.next { right: -.4rem; }
+.rail-arrow[disabled] { opacity: .35; cursor: default; }
+
+/* a closed section is not laid out at all, so the page is the open one plus the rail */
+.sheet[hidden], .scene[hidden] { display: none; }
+
+/* the sticky topbar is 3.5rem, and nothing on this page had a scroll margin */
+.sheet, .scene { scroll-margin-top: 4.5rem; }
+.sheet:focus-visible, .scene:focus-visible { outline: 3px solid var(--c2); outline-offset: 3px; }
+
+/* text for screen readers only — the card's visible text is three fragments */
+.sr {
+  position: absolute; width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+
+@media (max-width: 30rem) {
+  /* Explicit column counts, because `minmax` alone fits two tracks on a phone and `1fr`
+     then stretches each sticker to ~176 px — the box this change exists to shrink. */
+  .sheet-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pcard { flex-basis: 9.5rem; }
+  .rail-end { flex-basis: calc(50% - 4.75rem); }
+  .rail-arrow { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail { scroll-behavior: auto; }
+  .pcard { transition-duration: 1ms; }
+}
