@@ -809,8 +809,13 @@ footer {
   perspective: 820px;
   perspective-origin: 50% 50%;
   overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
+  /* No scroll-snap and no smooth: both of them act on every programmatic scrollLeft, so a
+     drag written frame by frame would be re-snapped and re-eased into lagging the finger.
+     The landing is animated here instead, in peel.js, where it can know how hard you threw. */
+  touch-action: pan-y pinch-zoom;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
   scrollbar-width: none;
   padding: .75rem 0 1rem;
   /* the rail scrolls sideways; the page must not follow it */
@@ -824,7 +829,6 @@ footer {
 
 .pcard {
   flex: 0 0 11rem;
-  scroll-snap-align: center;
   display: grid;
   gap: .5rem;
   padding: .75rem .75rem .9rem;
@@ -838,8 +842,8 @@ footer {
   cursor: pointer;
   scale: .86;
   opacity: .58;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
+  /* No preserve-3d: nothing inside a card is 3D, and keeping its subtree unflattened makes
+     the compositor place every child in 3D space on each frame instead of moving one texture. */
   transition: scale var(--base) var(--spring), opacity var(--base) var(--out),
               box-shadow var(--base) var(--out);
 }
@@ -847,6 +851,17 @@ footer {
 /* Once the ring is running, every frame is written by the scroll handler — a transition here
    would fight it and lag the card behind the finger. The fallback above stays for the
    browsers and the people that do not get the ring. */
+.rail.is-dragging { cursor: grabbing; }
+.pcard img { -webkit-user-drag: none; user-drag: none; }
+
+/* The ambient layers stand still while a finger is on the rail. The page carries three
+   infinite animations — a blurred five-gradient field behind everything, the sticker marquee
+   directly above the rail with a mask and a drop-shadow on every frame, and the floating
+   hero sticker — and all of them are spending the same raster budget as the gesture. */
+body.rail-dragging::before,
+body.rail-dragging .marquee .track,
+body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
+
 .rail.is-ring .pcard {
   scale: 1;
   opacity: 1;

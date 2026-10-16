@@ -127,13 +127,18 @@
     check();
   });
 
-  /* ---- the rail: swipe sideways, the middle card is the open section ----
+  /* ---- the rail: drag it, flick it, and the card in the middle is the open section ----
      Eight sections laid out at once made the page 35,821 px tall. Now the rail is the index
-     and exactly one section is in the layout. The snapping is the browser's; this only reads
-     which card ended up in the middle and swaps the section under it.
+     and exactly one section is in the layout.
 
-     This block sits BEFORE the reduced-motion return below on purpose: a visitor who asked
-     for less motion still gets the short page. */
+     The gesture is handled here rather than left to the native scroller, because the native
+     one cannot be told how hard it was thrown: `scroll-behavior` is a fixed curve and
+     `scroll-snap` re-snaps every programmatic write, so both were acting on the drag itself.
+     What is kept is the element's own `overflow-x`, so a trackpad, a wheel and a screen
+     reader still scroll it; those paths land on a card through the settle below.
+
+     This block sits BEFORE the reduced-motion return further down on purpose: a visitor who
+     asked for less motion still gets the short page and a rail they can drag. */
 
   (function () {
     var rail = document.getElementById("rail");
@@ -166,61 +171,47 @@
     var next = document.querySelector(".rail-arrow.next");
     var open = null;
 
-    function show(slug, focus) {
-      if (!sections[slug] || slug === open) return;
-      Object.keys(sections).forEach(function (key) {
-        sections[key].hidden = key !== slug;
-      });
-      cards.forEach(function (card) {
-        var on = card.dataset.for === slug;
-        card.classList.toggle("is-on", on);
-        card.setAttribute("aria-selected", on ? "true" : "false");
-        card.tabIndex = on ? 0 : -1;
-      });
-      if (scenesNote) scenesNote.hidden = !sections[slug].classList.contains("scene");
-      open = slug;
-      // replaceState, not pushState: a swipe is not a page, and eight of them should not
-      // bury the way back to wherever the visitor came from.
-      history.replaceState(null, "", "#" + slug);
-      if (focus) {
-        sections[slug].tabIndex = -1;
-        sections[slug].focus({ preventScroll: true });
-        // The rail, not the section. Scrolling to the pack alone puts the only evidence that
-        // there are seven others off the top of the screen.
-        wrap.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+    /* ---- geometry, measured once ----
+       Reading offsetLeft inside the draw loop meant a style-and-layout flush per card per
+       frame, right in the middle of the gesture. None of it moves while you drag, so it is
+       measured on load and on resize and read from here afterwards. */
+    var geo = [], railW = 1, maxScroll = 0, pitch = 1;
+
+    function measure() {
+      railW = rail.clientWidth || 1;
+      maxScroll = Math.max(rail.scrollWidth - railW, 0);
+      geo = cards.map(function (c) { return { left: c.offsetLeft, w: c.offsetWidth }; });
+      pitch = geo.length > 1 ? Math.abs(geo[1].left - geo[0].left) : geo[0].w;
+      if (!pitch) pitch = geo[0].w || 1;
+    }
+
+    function centreOf(i) { return geo[i].left - (railW - geo[i].w) / 2; }
+
+    function indexNearest(at) {
+      var mid = at + railW / 2, best = 0, gap = Infinity;
+      for (var i = 0; i < geo.length; i++) {
+        var d = Math.abs(geo[i].left + geo[i].w / 2 - mid);
+        if (d < gap) { gap = d; best = i; }
       }
-    }
-
-    function centre(card, smooth) {
-      var to = card.offsetLeft - (rail.clientWidth - card.offsetWidth) / 2;
-      rail.scrollTo({ left: to, behavior: smooth && !calm ? "smooth" : "auto" });
-    }
-
-    function nearest() {
-      var mid = rail.scrollLeft + rail.clientWidth / 2;
-      var best = cards[0], gap = Infinity;
-      cards.forEach(function (card) {
-        var d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
-        if (d < gap) { gap = d; best = card; }
-      });
       return best;
     }
 
-    function arrows() {
-      if (!prev || !next) return;
-      var i = cards.indexOf(nearest());
-      prev.hidden = next.hidden = false;
-      prev.disabled = i <= 0;
-      next.disabled = i >= cards.length - 1;
+    /* The rail's position, owned here. Written to the element, never read back during a
+       gesture — reading scrollLeft after writing it flushes the scroll the write queued. */
+    var pos = 0;
+
+    function setPos(v) {
+      if (v < 0) v = 0;
+      else if (v > maxScroll) v = maxScroll;
+      pos = v;
+      rail.scrollLeft = v;
+      redraw();
     }
 
     /* ---- the ring ----
-       Every card is a plank on a cylinder lying across the screen. Its angle is how far it
-       sits from the middle of the track, so scrolling the track turns the ring: the card in
-       front is flat and nearest, its neighbours rotate away on their own vertical axis and
-       sink back into the screen. The scroll is still the browser's — this only draws what the
-       scroll already decided, one transform per card per frame, nothing measured mid-gesture
-       except the offsets, which do not change. */
+       Every card is a plank on a cylinder lying across the screen: the one in front is flat
+       and nearest, its neighbours rotate away on their own vertical axis and sink back. One
+       rAF, one transform each, no measuring. */
     var STEP = 32;      // degrees of turn per card away from the middle
     var DEPTH = 88;     // how far each step sinks into the screen, in px
     var FADE = 0.26;    // how much a card loses per step
@@ -232,60 +223,237 @@
     var frame = 0;
     function draw() {
       frame = 0;
-      var mid = rail.scrollLeft + rail.clientWidth / 2;
-      // One step is one card along the track, so the arc reads the same on a phone as on a
-      // desktop — measuring against the viewport instead turns the neighbours edge-on at
-      // 375 px, which is a rail that looks like a single card.
-      var pitch = cards.length > 1
-        ? Math.abs(cards[1].offsetLeft - cards[0].offsetLeft)
-        : cards[0].offsetWidth;
-      if (!pitch) pitch = cards[0].offsetWidth || 1;
-      cards.forEach(function (card) {
-        var d = (card.offsetLeft + card.offsetWidth / 2 - mid) / pitch;
+      var mid = pos + railW / 2;
+      for (var i = 0; i < cards.length; i++) {
+        var d = (geo[i].left + geo[i].w / 2 - mid) / pitch;
         if (d < -ARC) d = -ARC;
-        if (d > ARC) d = ARC;
-        var far = Math.abs(d);
-        card.style.transform =
+        else if (d > ARC) d = ARC;
+        var far = d < 0 ? -d : d;
+        cards[i].style.transform =
           "rotateY(" + (-d * STEP).toFixed(2) + "deg)" +
           " translateZ(" + (-far * DEPTH).toFixed(1) + "px)";
-        card.style.opacity = Math.max(1 - far * FADE, 0.28).toFixed(3);
-        // The front card is the only one that should sit above its neighbours.
-        card.style.zIndex = String(100 - Math.round(far * 10));
-      });
+        cards[i].style.opacity = Math.max(1 - far * FADE, 0.28).toFixed(3);
+      }
     }
     function redraw() {
       if (!ring || frame) return;
       frame = requestAnimationFrame(draw);
     }
 
-    var settle;
-    rail.addEventListener("scroll", redraw, { passive: true });
-    addEventListener("resize", redraw);
+    /* Marking the card is a class toggle. Swapping the section lays out between 20 and 81
+       images, every one of them lazy and most without declared dimensions, so it reflows for
+       as long as they decode. The highlight may follow the finger; the section waits. */
+    function mark(slug) {
+      var at = 0;
+      cards.forEach(function (card, i) {
+        if (card.dataset.for === slug) at = i;
+      });
+      cards.forEach(function (card, i) {
+        var on = i === at;
+        card.classList.toggle("is-on", on);
+        card.setAttribute("aria-selected", on ? "true" : "false");
+        card.tabIndex = on ? 0 : -1;
+        // Set here, not per frame: the order only changes when the middle card does.
+        card.style.zIndex = String(100 - Math.abs(i - at));
+      });
+    }
+
+    function show(slug, focus) {
+      if (!sections[slug]) return;
+      if (slug === open) { if (focus) reveal(slug); return; }
+      Object.keys(sections).forEach(function (key) {
+        sections[key].hidden = key !== slug;
+      });
+      mark(slug);
+      if (scenesNote) scenesNote.hidden = !sections[slug].classList.contains("scene");
+      open = slug;
+      // replaceState, not pushState: a swipe is not a page, and eight of them should not
+      // bury the way back to wherever the visitor came from.
+      history.replaceState(null, "", "#" + slug);
+      if (focus) reveal(slug);
+    }
+
+    function reveal(slug) {
+      sections[slug].tabIndex = -1;
+      sections[slug].focus({ preventScroll: true });
+      // The rail, not the section. Scrolling to the pack alone puts the only evidence that
+      // there are seven others off the top of the screen.
+      wrap.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+    }
+
+    function arrows() {
+      if (!prev || !next) return;
+      var i = indexNearest(pos);
+      prev.hidden = next.hidden = false;
+      prev.disabled = i <= 0;
+      next.disabled = i >= cards.length - 1;
+    }
+
+    /* ---- the landing ----
+       easeOutCubic: quick off the mark, soft arrival. 1.1 ms per pixel puts a one-card move
+       at about 200 ms and a two-card one at about 400, which is the whole of the range the
+       gesture can actually produce; 0.65 left everything under 1.4 cards pinned at the floor. */
+    var glideId = 0;
+    function stopGlide() { if (glideId) { cancelAnimationFrame(glideId); glideId = 0; } }
+
+    function glide(to) {
+      stopGlide();
+      if (to < 0) to = 0;
+      else if (to > maxScroll) to = maxScroll;
+      var from = pos;
+      var span = to - from;
+      if (calm || Math.abs(span) < 1) { setPos(to); settleNow(); return; }
+      var ms = Math.min(420, Math.max(180, Math.abs(span) * 1.1));
+      var t0 = performance.now();
+      glideId = requestAnimationFrame(function run(now) {
+        var p = (now - t0) / ms;
+        if (p > 1) p = 1;
+        setPos(from + span * (1 - Math.pow(1 - p, 3)));
+        if (p < 1) glideId = requestAnimationFrame(run);
+        else { glideId = 0; settleNow(); }
+      });
+    }
+
+    function centre(card) { glide(centreOf(cards.indexOf(card))); }
+
+    /* Everything expensive happens here, once the rail has stopped: the section swap, the
+       hash, the arrows — and a landing for the scroll paths nobody snapped, which is every
+       trackpad, wheel, Home/End and screen-reader scroll now that scroll-snap is gone. */
+    var settleTimer;
+    function settleNow() {
+      clearTimeout(settleTimer);
+      if (dragging) return;
+      var i = indexNearest(pos);
+      show(cards[i].dataset.for, false);
+      arrows();
+      if (!glideId && Math.abs(pos - centreOf(i)) > 1) glide(centreOf(i));
+    }
+
     rail.addEventListener("scroll", function () {
-      clearTimeout(settle);
-      settle = setTimeout(function () {
-        show(nearest().dataset.for, false);
-        arrows();
-      }, 90);
+      if (dragging || glideId) return;       // those two own `pos` already
+      pos = rail.scrollLeft;
+      redraw();
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(settleNow, 140);
     }, { passive: true });
 
+    addEventListener("resize", function () {
+      measure();
+      setPos(centreOf(indexNearest(pos)));
+      arrows();
+    });
+
+    /* ---- the drag ----
+       1:1 with the finger and nothing else: a direct-manipulation gesture with a curve on it
+       reads as lag. Six pixels tells a drag from a tap; past that the click is swallowed. */
+    var GRAB = 6;          // px before a press becomes a drag
+    var WINDOW = 90;       // ms of pointer history the flick is measured over
+    var THROW = 140;       // ms of travel a flick is projected along
+    var REACH = 3;         // cards a single flick may cross
+    var NUDGE = 0.35;      // px/ms that counts as a flick even without travel
+
+    var dragging = false, pid = null, startX = 0, startPos = 0, moved = false;
+    var samples = [], suppress = false, pointerFocus = false;
+
+    function sample(e) {
+      var t = e.timeStamp || performance.now();
+      samples.push({ x: e.clientX, t: t });
+      while (samples.length > 2 && t - samples[0].t > WINDOW) samples.shift();
+    }
+
+    rail.addEventListener("pointerdown", function (e) {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      if (pid !== null) return;              // one finger owns the rail
+      stopGlide();
+      clearTimeout(settleTimer);
+      pid = e.pointerId;
+      dragging = true;
+      moved = false;
+      suppress = false;
+      // pointerdown focuses a <button>, and the focus handler below would start a glide into
+      // the same scrollLeft this drag is about to write. It stands down until the finger is up.
+      pointerFocus = true;
+      startX = e.clientX;
+      startPos = pos = rail.scrollLeft;
+      samples = [];
+      sample(e);
+      try { rail.setPointerCapture(pid); } catch (err) { /* capture is a nicety */ }
+      rail.classList.add("is-dragging");
+      document.body.classList.add("rail-dragging");
+    });
+
+    rail.addEventListener("pointermove", function (e) {
+      if (!dragging || e.pointerId !== pid) return;
+      var dx = startX - e.clientX;
+      if (!moved && Math.abs(dx) > GRAB) moved = true;
+      if (moved) {
+        setPos(startPos + dx);
+        e.preventDefault();
+      }
+      sample(e);
+    });
+
+    function land(flick) {
+      var from = indexNearest(startPos);
+      var to = from;
+      if (flick) {
+        var last = samples[samples.length - 1], first = samples[0];
+        var dt = Math.max(last.t - first.t, 1);
+        var v = (first.x - last.x) / dt;             // px/ms, positive = rail moving forward
+        var travel = pos - startPos;
+        to = indexNearest(pos + v * THROW);
+        // A short, gentle flick is the first thing anyone tries. Without this it lands back
+        // where it started, which reads as the rail ignoring you.
+        var way = travel > 0 || v > 0 ? 1 : (travel < 0 || v < 0 ? -1 : 0);
+        if (to === from && way && (Math.abs(travel) > pitch * 0.25 || Math.abs(v) > NUDGE)) {
+          to = from + way;
+        }
+        if (to > from + REACH) to = from + REACH;
+        else if (to < from - REACH) to = from - REACH;
+      } else {
+        to = indexNearest(pos);
+      }
+      if (to < 0) to = 0;
+      else if (to > cards.length - 1) to = cards.length - 1;
+      mark(cards[to].dataset.for);                   // the cheap half, immediately
+      glide(centreOf(to));
+    }
+
+    function release(e, flick) {
+      if (!dragging || (e && e.pointerId !== pid)) return;
+      dragging = false;
+      pid = null;
+      pointerFocus = false;
+      suppress = moved;
+      rail.classList.remove("is-dragging");
+      document.body.classList.remove("rail-dragging");
+      land(flick && moved && samples.length > 1);
+    }
+
+    rail.addEventListener("pointerup", function (e) { release(e, true); });
+    // The browser claims a gesture it decides is vertical. Land on the nearest card rather
+    // than flicking on a velocity that belonged to a scroll somebody else is now doing.
+    rail.addEventListener("pointercancel", function (e) { release(e, false); });
+
     cards.forEach(function (card) {
-      card.addEventListener("click", function () {
-        centre(card, true);
+      card.addEventListener("click", function (e) {
+        if (suppress) { suppress = false; e.preventDefault(); return; }
+        centre(card);
         show(card.dataset.for, true);
-        arrows();
       });
-      card.addEventListener("focus", function () { centre(card, true); });
+      card.addEventListener("focus", function () {
+        if (pointerFocus || dragging) return;        // a pointer is already driving this
+        centre(card);
+      });
     });
 
     function step(by) {
-      var i = cards.indexOf(nearest()) + by;
+      var i = indexNearest(pos) + by;
       if (i < 0 || i >= cards.length) return;
-      centre(cards[i], true);
-      show(cards[i].dataset.for, false);
+      mark(cards[i].dataset.for);
+      glide(centreOf(i));
       cards[i].tabIndex = 0;
       cards[i].focus({ preventScroll: true });
-      arrows();
     }
 
     if (prev) prev.addEventListener("click", function () { step(-1); });
@@ -296,7 +464,7 @@
       if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
     });
 
-    /* Which one to open on arrival. #halloween is the hero's "See the sheets" button and
+    /* Which one to open on arrival. #packs is the hero's "See the sheets" button, and
        #scenes is a chip over an <h2> that is not a section, so it means "the first scene". */
     function wanted() {
       var hash = (location.hash || "").slice(1);
@@ -316,22 +484,22 @@
     // restore a scroll position against the tall version.
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
+    measure();
     var first = wanted();
     show(first, false);
     function recentre() {
-      cards.forEach(function (card) {
-        if (card.dataset.for === open) centre(card, false);
-      });
-      redraw();
+      measure();
+      setPos(centreOf(indexNearest(pos)));
+      arrows();
     }
-    recentre();
-    redraw();
+    setPos(centreOf(cards.map(function (c) { return c.dataset.for; }).indexOf(first)));
+    arrows();
     // Again once the layout has settled: the first pass runs before the web font has swapped
     // and before the open section's images have sizes, and either can move the track.
     requestAnimationFrame(recentre);
-    window.addEventListener("load", recentre);
+    addEventListener("load", recentre);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(recentre);
-    arrows();
+
     if (location.hash) {
       // Everything above the rail — the hero art, the marquee — is lazy and undimensioned, so
       // it grows under us after this first scroll and carries the rail off the top. Hold the
@@ -348,12 +516,11 @@
     }
 
     /* A rail that has not moved looks like a row that ends where the screen does. The first
-       time it comes into view it nudges itself a few pixels and settles back — enough to say
-       "this scrolls" without taking the page over. Once only, never after a real scroll, and
-       never for someone who asked for less motion. */
+       time it comes into view it slides a little and settles back — enough to say "this
+       scrolls" without taking the page over. Once only, never after the visitor has touched
+       it, and never for someone who asked for less motion. */
     if (!calm && "IntersectionObserver" in window) {
-      var nudged = false;
-      var touched = false;
+      var nudged = false, touched = false;
       rail.addEventListener("pointerdown", function () { touched = true; }, { passive: true });
       rail.addEventListener("wheel", function () { touched = true; }, { passive: true });
       var hint = new IntersectionObserver(function (entries) {
@@ -361,25 +528,14 @@
           if (!entry.isIntersecting || nudged) return;
           nudged = true;
           hint.disconnect();
-          if (touched || rail.scrollWidth <= rail.clientWidth) return;
-          var home = rail.scrollLeft;
-          rail.scrollTo({ left: home + 26, behavior: "smooth" });
-          setTimeout(function () {
-            if (!touched) rail.scrollTo({ left: home, behavior: "smooth" });
-          }, 420);
+          if (touched || maxScroll <= 0) return;
+          var home = pos;
+          glide(home + 26);
+          setTimeout(function () { if (!touched) glide(home); }, 430);
         });
       }, { threshold: 0.6 });
       hint.observe(rail);
     }
-
-    window.addEventListener("hashchange", function () {
-      var slug = wanted();
-      show(slug, true);
-      cards.forEach(function (card) {
-        if (card.dataset.for === slug) centre(card, true);
-      });
-      arrows();
-    });
   })();
 
   /* ---- reveal on scroll, 40ms micro cascade ---- */
