@@ -214,10 +214,14 @@
        rAF, one transform each, no measuring. */
     var STEP = 30;      // degrees of turn per card away from the middle
     var DEPTH = 96;     // how far each step sinks into the screen, in px
-    var RISE = 95;      // how far the rim of the wheel drops below its top, in px
+    var RISE = 170;      // how far the rim of the wheel drops below its top, in px
     var SHRINK = 0.07;  // how much smaller each step is
+    var LEAN = 7;       // degrees each card leans in the plane of the screen, per step
     var FADE = 0.2;     // how much a card loses per step
-    var ARC = 2.2;      // steps before the ring stops turning any further
+    var ARC = 2.0;      // steps before the ring stops turning any further
+
+    // Half the deepest drop the arc can produce, which is where the ring is hung from.
+    var SAG = (1 - Math.cos(ARC * STEP * Math.PI / 180)) * RISE / 2;
 
     var ring = !calm && CSS.supports("perspective", "1px");
     if (ring) rail.classList.add("is-ring");
@@ -234,9 +238,13 @@
         // The wheel is seen slightly from above, so its rim falls away: a card's drop is the
         // sagitta of its own angle, which is what makes the row read as a curve rather than
         // as a straight line of tilted cards.
-        var drop = (1 - Math.cos(d * STEP * Math.PI / 180)) * RISE;
+        // Centred on the arc rather than hung from its top: the middle card rides a little
+        // above the line and the rim falls a little below it, so the wheel needs half the
+        // vertical room and the rail does not grow a scrollbar underneath it.
+        var drop = (1 - Math.cos(d * STEP * Math.PI / 180)) * RISE - SAG;
         cards[i].style.transform =
           "translateY(" + drop.toFixed(1) + "px)" +
+          " rotate(" + (d * LEAN).toFixed(2) + "deg)" +
           " rotateY(" + (-d * STEP).toFixed(2) + "deg)" +
           " translateZ(" + (-far * DEPTH).toFixed(1) + "px)" +
           " scale(" + (1 - far * SHRINK).toFixed(3) + ")";

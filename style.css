@@ -781,7 +781,7 @@ footer {
    exactly one section is open under it. Snapping is the browser's, not a library's, so a
    swipe keeps the momentum the platform gives it. */
 
-.rail-wrap { position: relative; margin: 1.25rem 0 .5rem; scroll-margin-top: 5.5rem; }
+.rail-wrap { position: relative; margin: .5rem 0 0; scroll-margin-top: 5.5rem; }
 
 .rail-lead { margin: 0 0 .2rem; font-size: .92rem; color: var(--muted); }
 .rail-lead span { color: var(--accent); font-weight: 600; }
@@ -817,7 +817,10 @@ footer {
   user-select: none;
   -webkit-user-select: none;
   scrollbar-width: none;
-  padding: .75rem 0 1rem;
+  /* Room above and below for the rim of the wheel, which drops away on both sides.
+     overflow-y stays hidden so a dropped card can never put a scrollbar on the rail. */
+  padding: 3.75rem 0 3.75rem;
+  overflow-y: hidden;
   /* the rail scrolls sideways; the page must not follow it */
   overscroll-behavior-x: contain;
 }
