@@ -47,6 +47,11 @@ def peel_import_link(path):
     )
 
 
+# What a paid pack's page says in place of the "download first" line. Same promise as a paid
+# scene (build_scenes.py): one purchase, once, and the file downloads either way.
+UNLOCK_NOTE = ("This one needs Peel unlocked \u2014 a single purchase, once, that opens every paid "
+               "pack and scene. The file downloads either way, and waits in Peel until it is.")
+
 PACKS = [
     {
         "slug": "halloween",
@@ -81,6 +86,15 @@ PACKS = [
         "spec": "ghost-says.json",
         "c1": "#8b7bd8", "c2": "#f4a6c8",
         "sub": "12 animated stickers · one small ghost, from Boo! to Haunting you",
+        "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
+        "slug": "moth-lights",
+        "title": "Moth Lights",
+        "spec": "moth-lights.json",
+        "c1": "#1f3b3a", "c2": "#7dffb0",
+        "sub": "12 animated stickers · a moth whose wings glow, for the late-night messages: Thinking of you, Can't sleep, Goodnight",
         "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
         "section": None,
     },
