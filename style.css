@@ -200,6 +200,42 @@ nav a[aria-current="page"] { color: var(--fg); background: color-mix(in srgb, va
 }
 .btn.ghost:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
 
+/* The second button had nothing to say for itself: a hairline outline next to a filled
+   tangerine pill reads as "and also", when the free sheets are the half of the page a
+   visitor can have without installing anything. It breathes instead — the glow swells and
+   fades rather than blinking, so it is noticed without being an alarm. */
+.btn.glow {
+  border-color: color-mix(in srgb, var(--lemon) 70%, var(--line));
+  color: var(--fg);
+  background: color-mix(in srgb, var(--lemon) 12%, transparent);
+  animation: pulse-glow 2.8s var(--inout, ease-in-out) infinite;
+}
+.btn.glow:hover,
+.btn.glow:focus-visible {
+  animation-play-state: paused;
+  border-color: var(--lemon);
+  color: var(--fg);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--lemon) 34%, transparent),
+              0 0 22px color-mix(in srgb, var(--lemon) 55%, transparent);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--lemon) 36%, transparent),
+                         0 0 10px color-mix(in srgb, var(--lemon) 22%, transparent); }
+  50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--lemon) 0%, transparent),
+                         0 0 26px color-mix(in srgb, var(--lemon) 62%, transparent); }
+}
+
+/* A pulse that never stops is the one thing reduced motion is most often asked for. It keeps
+   the brighter edge and the glow, and stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  .btn.glow {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--lemon) 30%, transparent),
+                0 0 18px color-mix(in srgb, var(--lemon) 45%, transparent);
+  }
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
