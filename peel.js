@@ -212,10 +212,12 @@
        Every card is a plank on a cylinder lying across the screen: the one in front is flat
        and nearest, its neighbours rotate away on their own vertical axis and sink back. One
        rAF, one transform each, no measuring. */
-    var STEP = 32;      // degrees of turn per card away from the middle
-    var DEPTH = 88;     // how far each step sinks into the screen, in px
-    var FADE = 0.26;    // how much a card loses per step
-    var ARC = 2.6;      // steps before the ring stops turning any further
+    var STEP = 30;      // degrees of turn per card away from the middle
+    var DEPTH = 96;     // how far each step sinks into the screen, in px
+    var RISE = 95;      // how far the rim of the wheel drops below its top, in px
+    var SHRINK = 0.07;  // how much smaller each step is
+    var FADE = 0.2;     // how much a card loses per step
+    var ARC = 2.2;      // steps before the ring stops turning any further
 
     var ring = !calm && CSS.supports("perspective", "1px");
     if (ring) rail.classList.add("is-ring");
@@ -229,10 +231,16 @@
         if (d < -ARC) d = -ARC;
         else if (d > ARC) d = ARC;
         var far = d < 0 ? -d : d;
+        // The wheel is seen slightly from above, so its rim falls away: a card's drop is the
+        // sagitta of its own angle, which is what makes the row read as a curve rather than
+        // as a straight line of tilted cards.
+        var drop = (1 - Math.cos(d * STEP * Math.PI / 180)) * RISE;
         cards[i].style.transform =
-          "rotateY(" + (-d * STEP).toFixed(2) + "deg)" +
-          " translateZ(" + (-far * DEPTH).toFixed(1) + "px)";
-        cards[i].style.opacity = Math.max(1 - far * FADE, 0.28).toFixed(3);
+          "translateY(" + drop.toFixed(1) + "px)" +
+          " rotateY(" + (-d * STEP).toFixed(2) + "deg)" +
+          " translateZ(" + (-far * DEPTH).toFixed(1) + "px)" +
+          " scale(" + (1 - far * SHRINK).toFixed(3) + ")";
+        cards[i].style.opacity = Math.max(1 - far * FADE, 0.3).toFixed(3);
       }
     }
     function redraw() {
@@ -289,6 +297,11 @@
       next.disabled = i >= cards.length - 1;
     }
 
+    function indexOfOpen() {
+      for (var i = 0; i < cards.length; i++) if (cards[i].dataset.for === open) return i;
+      return indexNearest(pos);
+    }
+
     /* ---- the landing ----
        easeOutCubic: quick off the mark, soft arrival. 1.1 ms per pixel puts a one-card move
        at about 200 ms and a two-card one at about 400, which is the whole of the range the
@@ -339,7 +352,7 @@
 
     addEventListener("resize", function () {
       measure();
-      setPos(centreOf(indexNearest(pos)));
+      setPos(centreOf(indexOfOpen()));
       arrows();
     });
 
@@ -487,9 +500,13 @@
     measure();
     var first = wanted();
     show(first, false);
+    /* Re-measure and put the open card back in the middle. It centres the *open* card and
+       not whatever is nearest, because the first measurement happens before the images and
+       the web font have sizes: the rail is not yet scrollable, the opening position clamps
+       to zero, and centring "the nearest" would then quietly adopt the wrong card. */
     function recentre() {
       measure();
-      setPos(centreOf(indexNearest(pos)));
+      setPos(centreOf(indexOfOpen()));
       arrows();
     }
     setPos(centreOf(cards.map(function (c) { return c.dataset.for; }).indexOf(first)));
@@ -499,6 +516,14 @@
     requestAnimationFrame(recentre);
     addEventListener("load", recentre);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(recentre);
+
+    /* A link to a pack from elsewhere on the page — the hero's chips, the footer — changes
+       only the fragment, so no load happens and nothing else would move the rail. */
+    addEventListener("hashchange", function () {
+      var slug = wanted();
+      show(slug, true);
+      glide(centreOf(indexOfOpen()));
+    });
 
     if (location.hash) {
       // Everything above the rail — the hero art, the marquee — is lazy and undimensioned, so
