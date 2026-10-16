@@ -55,7 +55,7 @@ NEEDS = {"pack": 1, "scene": 15}
 # has never heard of its fingerprint and would hand it over for nothing. Naming the release
 # that does know it means every older install greys the card out with "Update Peel to get
 # this" instead -- which is the wrong-in-the-harmless-direction failure.
-NEEDS_BY_ID: dict[str, int] = {}
+NEEDS_BY_ID: dict[str, int] = {"dead-honest": 23, "sir-crow": 23}
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
 # be a five-fold upscale; WebP with alpha because pack trays are cut-outs and a white box

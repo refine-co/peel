@@ -47,6 +47,11 @@ def peel_import_link(path):
     )
 
 
+# What a paid pack's page says in place of the "download first" line. Same promise as a paid
+# scene (build_scenes.py): one purchase, once, and the file downloads either way.
+UNLOCK_NOTE = ("This one needs Peel unlocked \u2014 a single purchase, once, that opens every paid "
+               "pack and scene. The file downloads either way, and waits in Peel until it is.")
+
 PACKS = [
     {
         "slug": "halloween",
@@ -82,6 +87,35 @@ PACKS = [
         "c1": "#8b7bd8", "c2": "#f4a6c8",
         "sub": "12 animated stickers · one small ghost, from Boo! to Haunting you",
         "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
+        "slug": "moth-lights",
+        "title": "Moth Lights",
+        "spec": "moth-lights.json",
+        "c1": "#1f3b3a", "c2": "#7dffb0",
+        "sub": "12 animated stickers · a moth whose wings glow, for the late-night messages: Thinking of you, Can't sleep, Goodnight",
+        "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
+        "slug": "dead-honest",
+        "title": "Dead Honest",
+        "spec": "dead-honest.json",
+        "c1": "#3a2a2a", "c2": "#ff4d5e",
+        "sub": "12 animated stickers · a deadpan skeleton for the dry replies: Dead tired, Bored to death, I'm fine",
+        "after": UNLOCK_NOTE,
+        "paid": True,
+        "section": None,
+    },
+    {
+        "slug": "sir-crow",
+        "title": "Sir Crow",
+        "spec": "sir-crow.json",
+        "c1": "#2a2f45", "c2": "#a9c4ff",
+        "sub": "12 animated stickers · a top-hatted crow for the polite replies: Good evening, Much obliged, How dare you",
+        "after": UNLOCK_NOTE,
+        "paid": True,
         "section": None,
     },
     {
