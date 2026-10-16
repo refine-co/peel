@@ -212,13 +212,16 @@
        Every card is a plank on a cylinder lying across the screen: the one in front is flat
        and nearest, its neighbours rotate away on their own vertical axis and sink back. One
        rAF, one transform each, no measuring. */
-    var STEP = 30;      // degrees of turn per card away from the middle
-    var DEPTH = 96;     // how far each step sinks into the screen, in px
-    var RISE = 170;      // how far the rim of the wheel drops below its top, in px
-    var SHRINK = 0.07;  // how much smaller each step is
-    var LEAN = 7;       // degrees each card leans in the plane of the screen, per step
-    var FADE = 0.2;     // how much a card loses per step
-    var ARC = 2.0;      // steps before the ring stops turning any further
+    /* Ten cards on the arc, not three. The whole shelf is the point: a wheel showing one
+       card and two slivers says as little about what is here as the old straight row did.
+       Every number below is per step, and a step is one card along the track. */
+    var STEP = 14;      // degrees of turn per card away from the middle
+    var DEPTH = 44;     // how far each step sinks into the screen, in px
+    var RISE = 110;     // the radius the drop is taken from, in px
+    var SHRINK = 0.05;  // how much smaller each step is
+    var LEAN = 3;       // degrees each card leans in the plane of the screen, per step
+    var FADE = 0.12;    // how much a card loses per step
+    var ARC = 5;        // steps before the ring stops turning any further
 
     // Half the deepest drop the arc can produce, which is where the ring is hung from.
     var SAG = (1 - Math.cos(ARC * STEP * Math.PI / 180)) * RISE / 2;
