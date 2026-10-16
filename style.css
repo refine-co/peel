@@ -781,7 +781,23 @@ footer {
    exactly one section is open under it. Snapping is the browser's, not a library's, so a
    swipe keeps the momentum the platform gives it. */
 
-.rail-wrap { position: relative; margin: 1.25rem 0 .5rem; }
+.rail-wrap { position: relative; margin: 1.25rem 0 .5rem; scroll-margin-top: 5.5rem; }
+
+.rail-lead { margin: 0 0 .2rem; font-size: .92rem; color: var(--muted); }
+.rail-lead span { color: var(--accent); font-weight: 600; }
+
+/* The cards run under a fade at both edges, so a rail that continues looks like one. */
+.rail-wrap::before,
+.rail-wrap::after {
+  content: "";
+  position: absolute;
+  top: 1.6rem; bottom: 0;
+  width: 2rem;
+  pointer-events: none;
+  z-index: 2;
+}
+.rail-wrap::before { left: -.25rem; background: linear-gradient(90deg, var(--bg), transparent); }
+.rail-wrap::after { right: -.25rem; background: linear-gradient(270deg, var(--bg), transparent); }
 
 .rail {
   display: flex;
@@ -882,6 +898,9 @@ footer {
      then stretches each sticker to ~176 px — the box this change exists to shrink. */
   .sheet-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pcard { flex-basis: 9.5rem; }
+  /* the topbar wraps to two rows at this width, so it is 116 px, not 56 */
+  .rail-wrap { scroll-margin-top: 8.5rem; }
+  .sheet, .scene { scroll-margin-top: 8rem; }
   .rail-end { flex-basis: calc(50% - 4.75rem); }
   .rail-arrow { display: none; }
 }

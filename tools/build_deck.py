@@ -129,8 +129,14 @@ def build():
     # The rail is the page's navigation, so it says so. The spacers let the first and last card
     # reach the middle of the track: scroll-snap-align centre cannot centre a card the track
     # cannot scroll far enough to put there.
+    sheets = sum(1 for c in items if not c["scene"])
+    scenes = len(items) - sheets
+    lead = (f'  <p class="rail-lead">{sheets} sticker sheets and {scenes} scenes. '
+            f'<span>Swipe to see them all.</span></p>')
+
     deck = (
-        '<nav class="rail-wrap" aria-label="Packs and scenes">\n'
+        f'<nav class="rail-wrap" id="packs" aria-label="Packs and scenes">\n'
+        f'{lead}\n'
         '  <button class="rail-arrow prev" type="button" aria-label="Previous pack" hidden>‹</button>\n'
         f'  <div class="rail" id="rail" role="tablist" aria-label="Packs and scenes" tabindex="0">\n'
         '    <span class="rail-end" aria-hidden="true"></span>\n'

@@ -161,6 +161,7 @@
     })();
     headings.forEach(function (h) { h.hidden = true; });
 
+    var wrap = document.getElementById("packs") || rail.parentElement;
     var prev = document.querySelector(".rail-arrow.prev");
     var next = document.querySelector(".rail-arrow.next");
     var open = null;
@@ -184,7 +185,9 @@
       if (focus) {
         sections[slug].tabIndex = -1;
         sections[slug].focus({ preventScroll: true });
-        sections[slug].scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
+        // The rail, not the section. Scrolling to the pack alone puts the only evidence that
+        // there are seven others off the top of the screen.
+        wrap.scrollIntoView({ block: "start", behavior: calm ? "auto" : "smooth" });
       }
     }
 
@@ -252,6 +255,7 @@
     function wanted() {
       var hash = (location.hash || "").slice(1);
       if (sections[hash]) return hash;
+      if (hash === "packs") return cards[0].dataset.for;
       if (hash === "scenes" || hash === "reactions-h" || hash === "halloween-h") {
         var want = hash === "scenes";
         for (var i = 0; i < cards.length; i++) {
@@ -281,7 +285,43 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(recentre);
     arrows();
     if (location.hash) {
-      sections[first].scrollIntoView({ block: "start", behavior: "auto" });
+      // Everything above the rail — the hero art, the marquee — is lazy and undimensioned, so
+      // it grows under us after this first scroll and carries the rail off the top. Hold the
+      // position until the page stops moving or the visitor takes over.
+      var held = true;
+      var hold = function () { if (held) wrap.scrollIntoView({ block: "start", behavior: "auto" }); };
+      addEventListener("wheel", function () { held = false; }, { passive: true, once: true });
+      addEventListener("touchstart", function () { held = false; }, { passive: true, once: true });
+      addEventListener("keydown", function () { held = false; }, { once: true });
+      hold();
+      requestAnimationFrame(hold);
+      addEventListener("load", function () { hold(); setTimeout(function () { held = false; }, 400); });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(hold);
+    }
+
+    /* A rail that has not moved looks like a row that ends where the screen does. The first
+       time it comes into view it nudges itself a few pixels and settles back — enough to say
+       "this scrolls" without taking the page over. Once only, never after a real scroll, and
+       never for someone who asked for less motion. */
+    if (!calm && "IntersectionObserver" in window) {
+      var nudged = false;
+      var touched = false;
+      rail.addEventListener("pointerdown", function () { touched = true; }, { passive: true });
+      rail.addEventListener("wheel", function () { touched = true; }, { passive: true });
+      var hint = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting || nudged) return;
+          nudged = true;
+          hint.disconnect();
+          if (touched || rail.scrollWidth <= rail.clientWidth) return;
+          var home = rail.scrollLeft;
+          rail.scrollTo({ left: home + 26, behavior: "smooth" });
+          setTimeout(function () {
+            if (!touched) rail.scrollTo({ left: home, behavior: "smooth" });
+          }, 420);
+        });
+      }, { threshold: 0.6 });
+      hint.observe(rail);
     }
 
     window.addEventListener("hashchange", function () {
