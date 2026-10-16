@@ -802,6 +802,12 @@ footer {
 .rail {
   display: flex;
   gap: .75rem;
+  /* The cards sit on a circle seen edge-on: the one in front is flat and nearest, the ones
+     either side turn away on their own vertical axis and fall back into the screen. The
+     angle is driven by how far each card is from the middle of the track, so the ring turns
+     with the scroll rather than on a clock of its own. */
+  perspective: 820px;
+  perspective-origin: 50% 50%;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
@@ -832,8 +838,20 @@ footer {
   cursor: pointer;
   scale: .86;
   opacity: .58;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
   transition: scale var(--base) var(--spring), opacity var(--base) var(--out),
               box-shadow var(--base) var(--out);
+}
+
+/* Once the ring is running, every frame is written by the scroll handler — a transition here
+   would fight it and lag the card behind the finger. The fallback above stays for the
+   browsers and the people that do not get the ring. */
+.rail.is-ring .pcard {
+  scale: 1;
+  opacity: 1;
+  transition: box-shadow var(--base) var(--out);
+  will-change: transform, opacity;
 }
 
 .pcard-art {

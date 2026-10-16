@@ -214,7 +214,53 @@
       next.disabled = i >= cards.length - 1;
     }
 
+    /* ---- the ring ----
+       Every card is a plank on a cylinder lying across the screen. Its angle is how far it
+       sits from the middle of the track, so scrolling the track turns the ring: the card in
+       front is flat and nearest, its neighbours rotate away on their own vertical axis and
+       sink back into the screen. The scroll is still the browser's — this only draws what the
+       scroll already decided, one transform per card per frame, nothing measured mid-gesture
+       except the offsets, which do not change. */
+    var STEP = 32;      // degrees of turn per card away from the middle
+    var DEPTH = 88;     // how far each step sinks into the screen, in px
+    var FADE = 0.26;    // how much a card loses per step
+    var ARC = 2.6;      // steps before the ring stops turning any further
+
+    var ring = !calm && CSS.supports("perspective", "1px");
+    if (ring) rail.classList.add("is-ring");
+
+    var frame = 0;
+    function draw() {
+      frame = 0;
+      var mid = rail.scrollLeft + rail.clientWidth / 2;
+      // One step is one card along the track, so the arc reads the same on a phone as on a
+      // desktop — measuring against the viewport instead turns the neighbours edge-on at
+      // 375 px, which is a rail that looks like a single card.
+      var pitch = cards.length > 1
+        ? Math.abs(cards[1].offsetLeft - cards[0].offsetLeft)
+        : cards[0].offsetWidth;
+      if (!pitch) pitch = cards[0].offsetWidth || 1;
+      cards.forEach(function (card) {
+        var d = (card.offsetLeft + card.offsetWidth / 2 - mid) / pitch;
+        if (d < -ARC) d = -ARC;
+        if (d > ARC) d = ARC;
+        var far = Math.abs(d);
+        card.style.transform =
+          "rotateY(" + (-d * STEP).toFixed(2) + "deg)" +
+          " translateZ(" + (-far * DEPTH).toFixed(1) + "px)";
+        card.style.opacity = Math.max(1 - far * FADE, 0.28).toFixed(3);
+        // The front card is the only one that should sit above its neighbours.
+        card.style.zIndex = String(100 - Math.round(far * 10));
+      });
+    }
+    function redraw() {
+      if (!ring || frame) return;
+      frame = requestAnimationFrame(draw);
+    }
+
     var settle;
+    rail.addEventListener("scroll", redraw, { passive: true });
+    addEventListener("resize", redraw);
     rail.addEventListener("scroll", function () {
       clearTimeout(settle);
       settle = setTimeout(function () {
@@ -276,8 +322,10 @@
       cards.forEach(function (card) {
         if (card.dataset.for === open) centre(card, false);
       });
+      redraw();
     }
     recentre();
+    redraw();
     // Again once the layout has settled: the first pass runs before the web font has swapped
     // and before the open section's images have sizes, and either can move the track.
     requestAnimationFrame(recentre);
