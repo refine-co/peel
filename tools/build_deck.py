@@ -7,7 +7,8 @@ and on a 400 px phone each of those boxes rendered about 176 px wide because `.s
 scenes meant scrolling past all of it.
 
 The rail is the index that was missing. One card per pack and per scene, swiped sideways, and
-whichever card is in the middle is the section open underneath it.
+whichever card is in the middle is the section open underneath it. Since 16 Oct 2026 there are
+two of them, one under a Sticker packs heading and one under Scenes, each a wheel of its own kind.
 
 **Where the card's facts come from.** `catalogue.json` — the same file the app fetches, built out
 of the archives themselves — carries the title, the piece count, whether it is animated, and a
@@ -34,6 +35,8 @@ CATALOGUE = SITE / "catalogue.json"
 
 START = "<!-- deck:start -->"
 END = "<!-- deck:end -->"
+SCENE_START = "<!-- scenedeck:start -->"
+SCENE_END = "<!-- scenedeck:end -->"
 
 
 def esc(s: str) -> str:
@@ -86,8 +89,6 @@ def card_html(card, first):
     pieces = f"{card['pieces']} {card['unit']}" + ("s" if card["pieces"] != 1 else "")
 
     marks = []
-    if card["scene"]:
-        marks.append('<span class="mark">Scene</span>')
     if card["animated"]:
         marks.append('<span class="mark">Animated</span>')
     # Before the download button, never after it. A file that downloads and then will not open
@@ -122,42 +123,64 @@ def card_html(card, first):
     )
 
 
-def build():
-    items = cards()
+def rail_html(items, kind):
+    """One wheel: a lead line, its own arrows, and one card per item of [kind].
+
+    [kind] is "packs" or "scenes". The rail carries it in `data-kind` and carries the id of the
+    thing the page should scroll to in `data-anchor`, so peel.js can run the same code for both
+    without knowing which is which. Each rail owns its own arrows, inside its own nav, because
+    peel.js finds them from the rail and not from the page.
+    """
     body = "\n".join(card_html(c, i == 0) for i, c in enumerate(items))
-
-    # The rail is the page's navigation, so it says so. The spacers let the first and last card
-    # reach the middle of the track: scroll-snap-align centre cannot centre a card the track
-    # cannot scroll far enough to put there.
-    sheets = sum(1 for c in items if not c["scene"])
-    scenes = len(items) - sheets
-    lead = (f'  <p class="rail-lead">{sheets} sticker sheets and {scenes} scenes. '
-            f'<span>Swipe to see them all.</span></p>')
-
-    deck = (
-        f'<nav class="rail-wrap" id="packs" aria-label="Packs and scenes">\n'
+    scenes = kind == "scenes"
+    noun, label = ("scene", "Scenes") if scenes else ("pack", "Sticker packs")
+    count = len(items)
+    lead = (f'  <p class="rail-lead">{count} {"scene" if scenes else "sticker pack"}{"" if count == 1 else "s"}. '
+            f'<span>Swipe to see {"them all" if count != 1 else "it"}.</span></p>')
+    return (
+        f'<nav class="rail-wrap" aria-label="{label}">\n'
         f'{lead}\n'
-        '  <button class="rail-arrow prev" type="button" aria-label="Previous pack" hidden>‹</button>\n'
-        f'  <div class="rail" id="rail" role="tablist" aria-label="Packs and scenes" tabindex="0">\n'
+        f'  <button class="rail-arrow prev" type="button" aria-label="Previous {noun}" hidden>\u2039</button>\n'
+        f'  <div class="rail" id="rail-{kind}" data-kind="{kind}" data-anchor="{"scenes" if scenes else "packs"}" '
+        f'role="tablist" aria-label="{label}" tabindex="0">\n'
         '    <span class="rail-end" aria-hidden="true"></span>\n'
         f'{body}\n'
         '    <span class="rail-end" aria-hidden="true"></span>\n'
         '  </div>\n'
-        '  <button class="rail-arrow next" type="button" aria-label="Next pack" hidden>›</button>\n'
+        f'  <button class="rail-arrow next" type="button" aria-label="Next {noun}" hidden>\u203a</button>\n'
         '</nav>'
     )
 
-    src = PAGE.read_text()
-    if START not in src:
-        raise SystemExit(f"{PAGE.name} has no {START} marker")
-    src = re.sub(
-        re.escape(START) + ".*?" + re.escape(END),
-        lambda _: f"{START}\n{deck}\n{END}",
-        src,
-        flags=re.S,
+
+def fill(src, start, end, html):
+    """[html] between the two markers, or a clear message about which builder writes them."""
+    if start not in src or end not in src:
+        raise SystemExit(f"{PAGE.name} has no {start} marker"
+                         + (" -- run build_scenes.py first, it writes this one" if "scenedeck" in start else ""))
+    return re.sub(re.escape(start) + ".*?" + re.escape(end),
+                  lambda _: f"{start}\n{html}\n{end}", src, flags=re.S)
+
+
+def build():
+    items = cards()
+    packs = [c for c in items if not c["scene"]]
+    scenes = [c for c in items if c["scene"]]
+
+    # The packs section is a heading and its rail inside one element, so the "See the sheets"
+    # button (#packs) lands on the heading and not on the rail below it. The scenes section's
+    # heading and note come from build_scenes.py, so only its rail is written here.
+    packs_html = (
+        '<section class="rail-section" id="packs" aria-labelledby="packs-h">\n'
+        '<h2 id="packs-h">Sticker packs</h2>\n'
+        f'{rail_html(packs, "packs")}\n'
+        '</section>'
     )
+
+    src = PAGE.read_text()
+    src = fill(src, START, END, packs_html)
+    src = fill(src, SCENE_START, SCENE_END, rail_html(scenes, "scenes"))
     PAGE.write_text(src)
-    print(f"deck: {len(items)} cards")
+    print(f"deck: {len(packs)} sticker packs, {len(scenes)} scenes")
 
 
 if __name__ == "__main__":

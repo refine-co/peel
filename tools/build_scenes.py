@@ -248,9 +248,13 @@ def main():
         kind = "puzzle" if is_puzzle(manifest) else "free placement"
         print(f"{scene['slug']}: {len(manifest['stickers'])} stickers, {size // 1024} KB, {kind}")
 
+    # The scenes rail sits between the note and the first scene. build_deck.py fills the markers,
+    # so they have to be written here: this block is rewritten whole on every run, and a rail
+    # put inside it by hand would be gone the next time a scene is added.
     body = (
         '<h2 id="scenes">Scenes</h2>\n'
-        f'<p class="note">{SECTION_INTRO}</p>\n\n' + "\n\n".join(cards)
+        f'<p class="note">{SECTION_INTRO}</p>\n\n'
+        '<!-- scenedeck:start -->\n<!-- scenedeck:end -->\n\n' + "\n\n".join(cards)
     )
 
     page = SITE / "packs.html"

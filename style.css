@@ -783,6 +783,11 @@ footer {
 
 .rail-wrap { position: relative; margin: .5rem 0 0; scroll-margin-top: 5.5rem; }
 
+/* Two sections, one wheel each. The Sticker packs heading and its rail share one element so a link
+   to #packs lands on the heading; the Scenes heading is the page's own h2, which is why it needs
+   the same scroll margin under the sticky bar. */
+.rail-section, #scenes { scroll-margin-top: 5.5rem; }
+
 .rail-lead { margin: 0 0 .2rem; font-size: .92rem; color: var(--muted); }
 .rail-lead span { color: var(--accent); font-weight: 600; }
 
@@ -939,6 +944,7 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
   .pcard { flex-basis: 9.5rem; margin: 0 -2rem; }
   /* the topbar wraps to two rows at this width, so it is 116 px, not 56 */
   .rail-wrap { scroll-margin-top: 8.5rem; }
+  .rail-section, #scenes { scroll-margin-top: 8.5rem; }
   .sheet, .scene { scroll-margin-top: 8rem; }
   .rail-end { flex-basis: calc(50% - 2.75rem); }
   .rail-arrow { display: none; }

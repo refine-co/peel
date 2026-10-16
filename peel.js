@@ -140,9 +140,10 @@
      This block sits BEFORE the reduced-motion return further down on purpose: a visitor who
      asked for less motion still gets the short page and a rail they can drag. */
 
-  (function () {
-    var rail = document.getElementById("rail");
-    if (!rail) return;                       // every other page shares this script
+  // One call per rail: the page has a Sticker packs rail and a Scenes rail, and each runs this
+  // whole block on its own, with its own cards, sections, arrows and position.
+  document.querySelectorAll(".rail").forEach(function (rail) {
+    var kind = rail.dataset.kind;            // "packs" or "scenes"
 
     var cards = Array.prototype.slice.call(rail.querySelectorAll(".pcard"));
     if (!cards.length) return;
@@ -153,22 +154,23 @@
       if (el) sections[card.dataset.for] = el;
     });
 
-    // The group headings and the scenes note sit outside every section, so hiding only the
-    // sections would leave "Festive" and "From the makers" standing over nothing, and a
-    // paragraph telling the reader to tap a piece that is not there.
-    var headings = ["halloween-h", "reactions-h", "scenes"].map(function (id) {
-      return document.getElementById(id);
-    }).filter(Boolean);
-    var scenesNote = (function () {
-      var h = document.getElementById("scenes");
-      var n = h && h.nextElementSibling;
-      return n && n.classList.contains("note") ? n : null;
-    })();
-    headings.forEach(function (h) { h.hidden = true; });
+    // The pack group headings sit outside every section, so hiding only the sections would leave
+    // "Festive" and "From the makers" standing over nothing. The scenes have no such headings:
+    // the Scenes heading and its note belong to the section, and stay.
+    if (kind === "packs") {
+      ["halloween-h", "reactions-h"].forEach(function (id) {
+        var h = document.getElementById(id);
+        if (h) h.hidden = true;
+      });
+    }
 
-    var wrap = document.getElementById("packs") || rail.parentElement;
-    var prev = document.querySelector(".rail-arrow.prev");
-    var next = document.querySelector(".rail-arrow.next");
+    // Where "scroll to the rail" lands (the section heading, so the heading is not left above
+    // the screen), and this rail's own arrows: found from the rail, never from the page, or the
+    // second rail would move the first one.
+    var wrap = document.getElementById(rail.dataset.anchor) || rail.parentElement;
+    var nav = rail.closest(".rail-wrap") || rail.parentElement;
+    var prev = nav.querySelector(".rail-arrow.prev");
+    var next = nav.querySelector(".rail-arrow.next");
     var open = null;
 
     /* ---- geometry, measured once ----
@@ -277,18 +279,19 @@
       });
     }
 
-    function show(slug, focus) {
+    // [quiet] leaves the address bar alone. The first open of each rail on load is quiet, because
+    // both rails open something and the second would overwrite a link to the first.
+    function show(slug, focus, quiet) {
       if (!sections[slug]) return;
       if (slug === open) { if (focus) reveal(slug); return; }
       Object.keys(sections).forEach(function (key) {
         sections[key].hidden = key !== slug;
       });
       mark(slug);
-      if (scenesNote) scenesNote.hidden = !sections[slug].classList.contains("scene");
       open = slug;
       // replaceState, not pushState: a swipe is not a page, and eight of them should not
       // bury the way back to wherever the visitor came from.
-      history.replaceState(null, "", "#" + slug);
+      if (!quiet) history.replaceState(null, "", "#" + slug);
       if (focus) reveal(slug);
     }
 
@@ -488,20 +491,16 @@
       if (e.key === "ArrowLeft") { e.preventDefault(); step(-1); }
     });
 
-    /* Which one to open on arrival. #packs is the hero's "See the sheets" button, and
-       #scenes is a chip over an <h2> that is not a section, so it means "the first scene". */
+    /* Which of THIS rail's cards the address asks for, or null when it asks for something that
+       belongs to the other rail or to nothing. The null matters: a link to a scene must not
+       send the packs rail back to its first card. #packs is the hero's "See the sheets" button
+       and #scenes the chip over the Scenes heading; each means "the first one". */
     function wanted() {
       var hash = (location.hash || "").slice(1);
       if (sections[hash]) return hash;
-      if (hash === "packs") return cards[0].dataset.for;
-      if (hash === "scenes" || hash === "reactions-h" || hash === "halloween-h") {
-        var want = hash === "scenes";
-        for (var i = 0; i < cards.length; i++) {
-          var el = sections[cards[i].dataset.for];
-          if (el && el.classList.contains("scene") === want) return cards[i].dataset.for;
-        }
-      }
-      return cards[0].dataset.for;
+      if (hash === rail.dataset.anchor) return cards[0].dataset.for;
+      if (kind === "packs" && (hash === "reactions-h" || hash === "halloween-h")) return cards[0].dataset.for;
+      return null;
     }
 
     // The document is about to lose 30,000 px of height, and the browser has already tried to
@@ -509,8 +508,8 @@
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
     measure();
-    var first = wanted();
-    show(first, false);
+    var first = wanted() || cards[0].dataset.for;
+    show(first, false, true);
     /* Re-measure and put the open card back in the middle. It centres the *open* card and
        not whatever is nearest, because the first measurement happens before the images and
        the web font have sizes: the rail is not yet scrollable, the opening position clamps
@@ -532,11 +531,12 @@
        only the fragment, so no load happens and nothing else would move the rail. */
     addEventListener("hashchange", function () {
       var slug = wanted();
+      if (!slug) return;                     // not ours: the other rail answers it
       show(slug, true);
       glide(centreOf(indexOfOpen()));
     });
 
-    if (location.hash) {
+    if (location.hash && wanted()) {
       // Everything above the rail — the hero art, the marquee — is lazy and undimensioned, so
       // it grows under us after this first scroll and carries the rail off the top. Hold the
       // position until the page stops moving or the visitor takes over.
@@ -572,7 +572,7 @@
       }, { threshold: 0.6 });
       hint.observe(rail);
     }
-  })();
+  });
 
   /* ---- reveal on scroll, 40ms micro cascade ---- */
 
