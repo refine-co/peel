@@ -20,9 +20,21 @@ database_id = "5a852b9c-3c7b-4ee9-bf92-a4094ed9d664"
 binding = "PACKS"
 bucket_name = "peel-submissions"
 
+# Cloudflare Email Sending, which the Workers Paid plan above already includes: 3,000 messages
+# a month, then $0.35 per thousand. The sender address is in src/index.js and lives on
+# refineco.app, not on peel.refineco.app — that name is a CNAME to GitHub Pages and so can hold
+# neither MX nor TXT.
+#
+# refineco.app has to be onboarded to Email Service once, in the dashboard, before this can send
+# to anybody but a verified address on the account. Until then every send throws and the phone
+# says it could not reach Peel, which is the honest answer.
+[[send_email]]
+name = "EMAIL"
+
 [vars]
 # Where a refusal tells people to write. Not a secret.
 CONTACT = "refine.co.my@gmail.com"
 
-# Secrets, set with `npx wrangler secret put NAME` — never in this file:
-#   RESEND_KEY   the email provider's API key
+# No secrets any more: email goes through the binding above rather than a third party, so there
+# is no API key to store. DEV=1 is set on the command line for local runs only, and makes
+# sendCode print the code instead of sending it.

@@ -27,14 +27,44 @@ npx wrangler d1 execute peel-submit --remote --file=migrations/<file>.sql
 
 **Email is the one thing still missing, and nothing works without it.** `/account/code` is how
 every account is made, so until the Worker can send a message the feature is dead: with no
-`RESEND_KEY` set it now answers 500 and the phone says it could not reach Peel. That is
-deliberate. It used to print the code to the console and answer 204, with no check on where it
-was running — on the deployed Worker that put every sign-in code into the log stream in plain
-text while telling people a message was on its way that never came.
+`EMAIL` binding able to deliver, every send throws, which becomes a 500 and the phone says it
+could not reach Peel. That is deliberate. It used to print the code to the console and answer
+204, with no check on where it was running — on the deployed Worker that put every sign-in code
+into the log stream in plain text while telling people a message was on its way that never came.
 
-To switch it on, either `npx wrangler secret put RESEND_KEY` with a Resend key for a verified
-`peel.refineco.app` sender, or move `sendCode` to Cloudflare Email Sending, which Workers Paid
-includes. For local work, `wrangler dev` with `DEV=1` set prints the code as before.
+Sending goes through **Cloudflare Email Sending**, not a third party: the Workers Paid plan this
+already needs includes 3,000 messages a month, then $0.35 per thousand, and there is no API key
+to store. Peel sends one message per account.
+
+### Turning it on
+
+The sender is `peel@refineco.app`, set as `SENDER` in `src/index.js`. It is **not** on
+`peel.refineco.app`: that name is a CNAME to GitHub Pages, and a name carrying a CNAME can hold
+neither MX nor TXT, so no sending domain can live there. `refineco.app` already runs Email
+Routing — MX to `route1/2/3.mx.cloudflare.net` and `v=spf1 include:_spf.mx.cloudflare.net` — so
+half of this is in place and a reply to the address reaches a person.
+
+In the Cloudflare dashboard, on the `refineco.app` zone: **Email → Email Service → Sending**,
+onboard the domain, and add the DKIM records it offers (it can add them itself, since the zone
+is on Cloudflare). Then add `peel@refineco.app` as a verified sender.
+
+**Check the first real message by hand.** `_dmarc.refineco.app` is `p=reject; sp=reject`, so a
+send Cloudflare accepts can still be thrown away at the far end if DKIM is not aligned, and
+nothing in the Worker can see that. A successful call is not proof of delivery.
+
+### Working on it locally
+
+The binding cannot deliver from `wrangler dev`, so for local work:
+
+```
+npx wrangler dev --local --port 8787 --var DEV:1   # prints the code instead of sending it
+adb reverse tcp:8787 tcp:8787                      # the phone's localhost is this machine
+./check.sh
+```
+
+and build the app's debug variant with `SUBMIT_BASE_URL` set to `http://localhost:8787` —
+`SubmitClient` allows plain HTTP only in a debug build, and only for localhost, 127.0.0.1 and
+the emulator's 10.0.2.2.
 
 ## What is still missing after that
 

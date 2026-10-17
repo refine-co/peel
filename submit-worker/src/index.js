@@ -66,6 +66,9 @@ const GLOBAL_CODES_PER_DAY = 500;
  * argon2 are not available here. The iteration count is stored per account, so
  * raising it later does not invalidate anybody's existing password.
  */
+/** Who the code comes from. See the note in sendCode for why it is not on peel.refineco.app. */
+const SENDER = "Peel <peel@refineco.app>";
+
 const PW_ITERATIONS = 100_000;
 const PW_MIN = 8;
 const SIGNIN_TRIES = 8;
@@ -125,6 +128,14 @@ async function accountCode(request, env) {
   }
 
   const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
+
+  // Sent before it is stored, and nothing here is caught. A send that fails must leave no
+  // trace: storing first meant five failed attempts locked an address out for an hour over
+  // messages that were never sent, and left an account behind for somebody who has no way in.
+  // The other order is worse in only one way — a code that arrives and then fails to store,
+  // which is rarer and recoverable by asking again.
+  await sendCode(env, email, code);
+
   await env.DB.prepare(
     "INSERT INTO codes (email, code, expires_at, tries) VALUES (?, ?, ?, 0) " +
     "ON CONFLICT(email) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at, tries = 0"
@@ -142,11 +153,6 @@ async function accountCode(request, env) {
     // Nothing else prunes this table, and it only exists to be counted.
     env.DB.prepare("DELETE FROM code_requests WHERE at < ?").bind(dayAgo),
   ]);
-
-  // Last, and not caught: if the message cannot be sent there is no point pretending it was.
-  // A throw becomes a 500, which the phone shows as "could not reach Peel" — wrong in detail
-  // but right in effect, where a 204 would park somebody on a code screen forever.
-  await sendCode(env, email, code);
   return new Response(null, { status: 204 });
 }
 
@@ -504,30 +510,36 @@ function normalise(email) {
  * refusal from the provider is a failure here rather than a silent success.
  */
 async function sendCode(env, email, code) {
-  if (!env.RESEND_KEY) {
-    if (env.DEV !== "1") throw new Error("no RESEND_KEY: refusing to pretend a code was sent");
-    // `wrangler dev` with DEV=1: print it, exactly like the reference server.
+  if (!env.EMAIL) {
+    if (env.DEV !== "1") throw new Error("no EMAIL binding: refusing to pretend a code was sent");
+    // `wrangler dev --var DEV:1`: print it, exactly like the reference server. The binding
+    // cannot deliver from a local run, and this is the only way to drive the account flow
+    // from a phone without spending real sends.
     console.log(`*** code for ${email}: ${code} ***`);
     return;
   }
-  const answer = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.RESEND_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "Peel <hello@peel.refineco.app>",
-      to: [email],
-      subject: `${code} is your Peel code`,
-      text:
-        `${code}\n\nType this into Peel to finish sending your pack. It is good for 15 minutes.\n\n` +
-        `If you did not ask for it, nothing has happened and you can ignore this.`,
-    }),
+  // Cloudflare Email Sending, which the Workers Paid plan this already needs includes: 3,000
+  // messages a month, then $0.35 per thousand. Peel sends one per account.
+  //
+  // The sender is on refineco.app and not on peel.refineco.app, which cannot hold the records
+  // this needs: that name is a CNAME to GitHub Pages, and a name with a CNAME on it can carry
+  // neither MX nor TXT. refineco.app already runs Email Routing, so a reply to this address
+  // reaches a person.
+  await env.EMAIL.send({
+    from: SENDER,
+    to: email,
+    subject: `${code} is your Peel code`,
+    text:
+      `${code}\n\nType this into Peel to finish sending your pack. It is good for 15 minutes.\n\n` +
+      `If you did not ask for it, nothing has happened and you can ignore this.`,
   });
-  // An unverified sending domain, a rate limit or a bounce all arrive here. Answering 204 to
-  // any of them leaves somebody on the code screen waiting for a message that was refused.
-  if (!answer.ok) throw new Error(`Resend refused: ${answer.status}`);
+  // Nothing is caught here on purpose. An unverified sender, a suppressed recipient or a
+  // refused send throws, which becomes a 500 and the phone says it could not reach Peel.
+  // Answering 204 to a message that was refused leaves somebody waiting for a code forever.
+  //
+  // What this cannot tell you: _dmarc.refineco.app is p=reject, sp=reject, so a send Cloudflare
+  // accepts can still be rejected at the far end if DKIM is not aligned. A successful call is
+  // not proof of delivery — the first real address has to be checked by hand.
 }
 
 /**
