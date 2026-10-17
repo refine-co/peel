@@ -3,3 +3,6 @@
 
 # The reference server keeps whatever it was sent while being tested.
 tools/submissions/
+
+# wrangler keeps its local-run state and account cache here.
+.wrangler/
