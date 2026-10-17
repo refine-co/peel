@@ -23,7 +23,8 @@ Worker and nothing new to attack.
 AUTO-SYNC
 
 `publish` does the whole chain: pulls the file out of R2, writes it into site/packs/, regenerates
-the catalogue and the preview pictures with build_catalogue.py, and marks the row published. The
+the catalogue and the preview pictures with build_catalogue.py, builds the website's sheet and
+rail with build_sheets.py and build_deck.py, and marks the row published. The
 app and the website then agree because they read the same generated catalogue — the app fetches
 catalogue.json, the website is built from it. The last step is a commit, which is left to you.
 """
@@ -157,17 +158,23 @@ def cmd_publish(args) -> None:
     r2_get(f"{args.id}.peel", target)
     print(f"wrote {target}")
 
-    build = subprocess.run(["python3", "build_catalogue.py"], cwd=HERE, capture_output=True, text=True)
-    if build.returncode != 0:
-        target.unlink(missing_ok=True)
-        sys.exit(f"build_catalogue.py failed, nothing published:\n{build.stderr.strip()}")
-    print(build.stdout.strip())
+    # Three builders, not one. build_catalogue.py is what the app reads; build_sheets.py and
+    # build_deck.py are what the website shows. Running only the first is how Oyen Kampung
+    # ended up downloadable in More fun and absent from packs.html — the app and the site
+    # disagreeing about what exists. Any of them failing leaves nothing published.
+    for script in ("build_catalogue.py", "build_sheets.py", "build_deck.py"):
+        build = subprocess.run(["python3", script], cwd=HERE, capture_output=True, text=True)
+        if build.returncode != 0:
+            target.unlink(missing_ok=True)
+            sys.exit(f"{script} failed, nothing published:\n{build.stderr.strip()}")
+        print(build.stdout.strip())
 
     d1(f"UPDATE submissions SET state = 'published', reviewed_at = {now_ms()} WHERE id = '{sql_text(args.id)}'")
     r2_delete(f"{args.id}.peel")
     print(f"\n{row['pack_name']!r} by {row['credit']} is in the catalogue.")
-    print("\nThe app and the website both read the generated catalogue, so the last step is one commit:")
-    print(f"  cd {SITE}  &&  git add packs/{args.slug}.peel catalogue.json  &&  git commit && git push")
+    print("\nThe last step is one commit, in both repositories:")
+    print(f"  cd {SITE}  &&  git add -A packs catalogue.json packs.html  &&  git commit && git push")
+    print("  cd ~/Projects/android-peel  &&  git add -A app/src/main/assets  &&  git commit && git push")
     print("\nThe app picks it up the next time somebody opens More fun or pulls it down.")
 
 

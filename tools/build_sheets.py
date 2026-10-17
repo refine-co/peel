@@ -9,6 +9,7 @@ picture can never show something the pack does not contain. Run from anywhere:
 Needs Google Chrome for the PNG render; pass --no-png to skip it.
 """
 
+import colorsys
 import html
 import json
 import pathlib
@@ -142,8 +143,26 @@ PACKS = [
 TILTS = (-2.6, 1.8, -1.1, 2.4, -3.0, 0.9, -1.9, 2.8, -0.6, 1.4, -2.2, 3.0)
 
 
+def captions_of(pack):
+    """The captions for one pack, from its spec file or, failing that, from its own manifest.
+
+    Peel's own packs are written as a spec in the Android repo and the archive is built from
+    it, so the spec is the source. A pack somebody sent in has no spec and never will — but
+    its manifest carries the same three things, because `accessibilityText` and `emojis` are
+    what the app writes into every pack it exports. So the sheet is built from the archive,
+    which also means the page cannot show a caption the pack does not contain.
+    """
+    if pack.get("spec"):
+        return captions(SPECS / pack["spec"])
+    with zipfile.ZipFile(SITE / "packs" / f"{pack['slug']}.peel") as z:
+        return captions_from(json.loads(z.read("manifest.json")))
+
+
 def captions(spec_path):
-    data = json.load(open(spec_path))
+    return captions_from(json.load(open(spec_path)))
+
+
+def captions_from(data):
     items = data["stickers"] if isinstance(data, dict) else data
     out = []
     for s in items:
@@ -152,6 +171,88 @@ def captions(spec_path):
             m = re.search(r'reads "([^"]+)"', s.get("accessibilityText", ""))
             cap = m.group(1) if m else ""
         out.append((cap, s.get("accessibilityText", ""), "".join(s.get("emojis", []))))
+    return out
+
+
+def shades(slug, files):
+    """Two colours for the sheet's banner, taken from the pack's own stickers.
+
+    A pack somebody sent in brings no palette with it, and picking one by hand does not scale.
+    The hue comes from the stickers themselves so the sheet looks like what is in it; the
+    lightness does not, because the banner carries white text over the gradient and a colour
+    sampled straight out of a drawing is as likely to be pale yellow as it is navy. Fixing the
+    two lightnesses is what keeps every sent-in sheet readable without anybody checking.
+    """
+    from PIL import Image
+
+    hues, weights = [], []
+    for name in files[:6]:
+        im = Image.open(SITE / "packs" / "img" / slug / "stickers" / name).convert("RGBA")
+        im.thumbnail((48, 48))
+        for r, g, b, a in im.getdata():
+            if a < 128:
+                continue
+            h, l, sat = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            # Grey pixels have a meaningless hue, and an outline is mostly grey.
+            if sat < 0.25 or l < 0.12 or l > 0.93:
+                continue
+            hues.append(h)
+            weights.append(sat)
+
+    if not hues:
+        return "#2b2440", "#8b7bd8"          # Peel's own purple, for a pack with no colour in it
+
+    # Hue is an angle, so the mean has to go round the circle rather than along a line —
+    # averaging 0.02 and 0.98 the ordinary way gives cyan out of two reds.
+    import math
+    x = sum(w * math.cos(2 * math.pi * h) for h, w in zip(hues, weights))
+    y = sum(w * math.sin(2 * math.pi * h) for h, w in zip(hues, weights))
+    hue = (math.atan2(y, x) / (2 * math.pi)) % 1.0
+
+    def hex_at(lightness, saturation):
+        r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+        return "#%02x%02x%02x" % (round(r * 255), round(g * 255), round(b * 255))
+
+    return hex_at(0.22, 0.42), hex_at(0.58, 0.72)
+
+
+def sent_in():
+    """Every pack in site/packs/ that is not one of ours, described well enough to render.
+
+    Publishing a pack somebody sent in writes it here and into catalogue.json, and the app
+    then finds it. The website would not: PACKS above is hand-written, build_deck.py walks the
+    same list, and a pack missing from it is missing from both the rail and the sheets — which
+    is exactly what happened to the first one. Deriving an entry from the archive closes that
+    by construction, so no pack can reach the app and not the site.
+    """
+    known = {p["slug"] for p in PACKS}
+    out = []
+    for path in sorted((SITE / "packs").glob("*.peel")):
+        if path.stem in known:
+            continue
+        with zipfile.ZipFile(path) as z:
+            manifest = json.loads(z.read("manifest.json"))
+            files = sorted(
+                pathlib.Path(n).name for n in z.namelist() if n.startswith("stickers/")
+            )
+        kind = "animated stickers" if manifest.get("animated") else "stickers"
+        title = manifest.get("name") or path.stem
+        # The credit, when it says something the title has not. A pack of ours carries its own
+        # name here, and "Oyen Kampung · by Oyen Kampung" helps nobody. Deliberately not worded
+        # as "sent in by": this function cannot tell a pack somebody submitted from one of ours
+        # published the same way, and claiming the wrong one on a public page is worse than
+        # saying less. Give a sent-in pack its own heading by hand, once there is one.
+        credit = (manifest.get("publisher") or "").strip()
+        byline = f" · by {html.escape(credit)}" if credit and credit != title else ""
+        out.append({
+            "slug": path.stem,
+            "title": title,
+            "spec": None,
+            "sub": f"{len(files)} {kind}{byline}",
+            "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+            "section": None,
+            "files": files,
+        })
     return out
 
 
@@ -272,7 +373,7 @@ def main():
 
     for pack in PACKS:
         files = extract(pack["slug"])
-        caps = captions(SPECS / pack["spec"])
+        caps = captions_of(pack)
         assert len(files) == len(caps), f"{pack['slug']}: {len(files)} files, {len(caps)} captions"
 
         size = (SITE / "packs" / f"{pack['slug']}.peel").stat().st_size
@@ -308,7 +409,28 @@ def main():
         src, flags=re.S,
     )
     page.write_text(src)
-    print("packs.html: %d peelable stickers" % src.count('class="peel'))
+    total = src.count('class="peel')
+    print("packs.html: %d peelable stickers" % total)
+
+    # The hero counts are prose — "Ten full sticker sheets", "two of them behind the unlock" —
+    # so they are written by hand and cannot be regenerated without flattening them. They can
+    # still be checked. Publishing a pack used to leave them saying nine sheets and 146
+    # stickers while the page carried ten and 158, which is the kind of wrong a reader spots
+    # before we do.
+    chip = re.search(r'<span class="chip">(\d+) stickers</span>', src)
+    if chip and int(chip.group(1)) != total:
+        print(f"  CHECK  packs.html hero chip says {chip.group(1)} stickers, the page has {total}")
+    print(f"  (hero copy is hand-written: {len(PACKS)} sheets, {total} stickers. index.html "
+          f"spells both out in words and is not checked — read it when either changes.)")
+
+
+# At import, not inside main(), because build_deck.py imports PACKS and builds the rail from
+# it — a sent-in pack has to be in the list before either script walks it. extend() rather than
+# a rebind so the list build_deck already holds is the one that grows.
+for _entry in sent_in():
+    extract(_entry["slug"])                       # shades() reads the unpacked stickers
+    _entry["c1"], _entry["c2"] = shades(_entry["slug"], _entry.pop("files"))
+    PACKS.append(_entry)
 
 
 if __name__ == "__main__":
