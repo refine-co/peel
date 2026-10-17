@@ -1,0 +1,28 @@
+# Peel's submission API. Deploy with:  npx wrangler deploy
+#
+# Everything here needs an account that only Yow can create. The three ids below are printed by
+# the `wrangler ... create` commands in README.md and have to be pasted in before the first
+# deploy — they are account-specific, so they cannot be filled in ahead of time.
+
+name = "peel-submit"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Workers Paid. The free plan allows about 10 ms of CPU per request, and opening a
+# multi-megabyte zip to check it does not fit in that.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "peel-submit"
+database_id = "5a852b9c-3c7b-4ee9-bf92-a4094ed9d664"
+
+[[r2_buckets]]
+binding = "PACKS"
+bucket_name = "peel-submissions"
+
+[vars]
+# Where a refusal tells people to write. Not a secret.
+CONTACT = "refine.co.my@gmail.com"
+
+# Secrets, set with `npx wrangler secret put NAME` — never in this file:
+#   RESEND_KEY   the email provider's API key
