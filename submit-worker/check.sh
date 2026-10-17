@@ -6,7 +6,12 @@
 #
 # Every case here is a defect that was live, or that review found in the plan before it was
 # written. None of them is visible from the happy path, which is the whole reason this file
-# exists. Run it before a deploy. It writes to the *local* database only.
+# exists. Run it before a deploy.
+#
+# With no argument it talks to a local `wrangler dev` and writes to the local database. Given
+# a URL it talks to that instead — `./check.sh https://peel-submit.refineco.workers.dev` is a
+# real check against production, and it does leave rows in the real `sign_in_attempts` table,
+# which is harmless but worth knowing before you read that table.
 #
 # WHAT THIS CANNOT COVER, stated rather than implied: a *successful* sign-in, and the
 # signature check itself. Nothing here can mint a token Google has signed, so that much is a

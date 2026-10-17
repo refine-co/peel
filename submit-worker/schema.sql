@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS accounts (
   google_sub  TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS accounts_google_sub ON accounts(google_sub);
-CREATE INDEX IF NOT EXISTS accounts_email ON accounts(email);
 
 -- The row every deleted account's published submissions point at, so the credit on the website
 -- still resolves while the person behind it is gone. Not an account anybody can sign in to:
@@ -44,6 +43,10 @@ CREATE TABLE IF NOT EXISTS tokens (
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL
 );
+
+-- The token is the primary key, so a session lookup is already covered. This is for the three
+-- statements that go the other way: the five-device prune, the delete, and the cascade.
+CREATE INDEX IF NOT EXISTS tokens_account_id ON tokens(account_id);
 
 -- One row per pack sent in. The file itself lives in R2 under the same id.
 -- state: waiting | published | refused | withdrawn

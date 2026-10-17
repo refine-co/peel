@@ -368,9 +368,7 @@ async function whoIs(request, env) {
   const row = await env.DB.prepare(
     "SELECT a.id, a.blocked_at FROM tokens t JOIN accounts a ON a.id = t.account_id WHERE t.token = ?"
   ).bind(token).first();
-  // The token travels with the session so a password change can sign out every device except
-  // the one asking.
-  return row ? { ...row, token } : null;
+  return row ?? null;
 }
 
 /* ------------------------------------------------------------------- packs */
