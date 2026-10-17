@@ -25,16 +25,35 @@
 
 <p class="eyebrow">Peel · privacy policy</p>
 <h1>Your photos stay on your phone</h1>
-<p class="lede">Peel turns your photos into WhatsApp sticker packs. The cutting-out happens on your phone. There is no account to create and no server that receives your photos or your stickers.</p>
+<p class="lede">Peel turns your photos into WhatsApp sticker packs. The cutting-out happens on your phone. There is no account to create in order to use Peel, and no server receives your photos or your stickers &mdash; unless you choose to send a pack in, which is the one thing that uploads anything, and only the pack you picked.</p>
 <p class="updated">Last updated 15 October 2026</p>
 
 <h2>The short version</h2>
-<p>Peel uses the internet for two things, and you ask for both. Tapping a pack or a scene downloads that file. Opening the <em>More fun</em> screen, or pulling it down, fetches the catalogue of what is available. Both go to <code>peel.refineco.app</code>, over HTTPS, and nothing else. Peel never does either on its own: nothing is fetched when the app starts, and somebody who never opens that screen and never taps a pack makes no request at all.</p>
+<p>Peel uses the internet for three things, and you ask for all of them. Tapping a pack or a scene downloads that file. Opening the <em>More fun</em> screen, or pulling it down, fetches the catalogue of what is available. Those two go to <code>peel.refineco.app</code>, over HTTPS. The third is sending a pack in, described below, which is the only thing Peel ever uploads and the only reason it has an account. Peel never does either on its own: nothing is fetched when the app starts, and somebody who never opens that screen and never taps a pack makes no request at all.</p>
 <p>Neither can be redirected to another address. The download refuses anything that is not a pack or a scene and refuses a file over 8&nbsp;MB; the list is one fixed address and is refused above 512&nbsp;KB. The catalogue also ships inside the app, so the screen is full before any of this happens &mdash; the fetch only replaces it with whatever is published now.</p>
 <p>Three things built by Google also use the network, and they are Google's, governed by Google's privacy policy rather than this one: the cut-out model that Play services may download the first time it is needed (described below), the Play Store's own rating sheet if it decides to appear, and Google Play Billing if you buy the unlock. None of them is given your photos or your stickers.</p>
-<p><strong>Your photos and stickers are never uploaded.</strong> The cutting-out happens on your phone, nothing you make is sent anywhere, and there is no account, no server that holds your work and no way for us to see it. Traffic only ever goes one way: a file comes down, nothing goes up.</p>
+<p><strong>Your photos are never uploaded, and nothing you make is uploaded unless you send it in.</strong> The cutting-out happens on your phone. Peel does not sync, back up or copy your packs anywhere, and nobody can see what you make. The one exception is deliberate and takes several taps: choosing <em>Send this to Peel</em> on a pack you made, to offer it to other people.</p>
+
+<h2>If you send a pack in</h2>
+<p>This is the only part of Peel with an account, and you only meet it if you decide to share a pack. Making stickers, downloading packs and everything else works without one, and always will.</p>
+<p><strong>What is sent:</strong> the pack file you chose, the credit name you typed, and one optional line describing it. That is the whole list. No photos that are not in the pack, nothing about your phone, no identifier for your install.</p>
+<p><strong>What is stored, and for how long:</strong></p>
+<table>
+<thead><tr><th>What</th><th>Why</th><th>How long</th></tr></thead>
+<tbody>
+<tr><td>Your email address</td><td>To send the six-digit sign-in code, and to reply about your pack</td><td>Until you delete your account. Never shown to anyone else and never used for anything you did not ask for &mdash; no newsletter, no marketing.</td></tr>
+<tr><td>The name you chose</td><td>It is the credit published with your pack</td><td>Until you delete your account</td></tr>
+<tr><td>A sign-in code</td><td>To prove the address is yours</td><td>15 minutes, then deleted</td></tr>
+<tr><td>A sign-in token, on your phone</td><td>So you do not type a code every time</td><td>Until you sign out or delete the app</td></tr>
+<tr><td>The pack you sent, and its credit line</td><td>So a person can read it and decide</td><td>Until you withdraw it or we refuse it</td></tr>
+</tbody>
+</table>
+<p>Submissions are held by Cloudflare, in their object storage and database, on Peel's behalf. Nothing is published automatically: a person looks at every pack.</p>
+<p><strong>Deleting your account.</strong> In Peel, <em>Send this to Peel</em> &rarr; <em>Delete my account</em>. It removes your email address, your name, every sign-in token, and any pack of yours still waiting to be looked at. It is immediate and it is not reversible.</p>
+<p>A pack that has already been <em>published</em> is a separate thing, because other people have downloaded it. Ask us to take it down and we will remove it from the website and the catalogue, so nobody new can get it &mdash; but copies already on other people's phones stay there, and we have no way to reach them. We would rather say that plainly than imply a delete button we do not have.</p>
+<p>Write to <a href="mailto:refine.co.my@gmail.com">refine.co.my@gmail.com</a> about anything here, including a takedown.</p>
 <p>There is no analytics, no advertising and no tracking. Nobody, including us, can see what you make.</p>
-<p>Until version 2.0.0 the app had no <code>INTERNET</code> permission at all, and this page said so. Packs then arrived as a file your browser downloaded, and the permission was added so that tapping <em>Open in Peel</em> works in one step instead of three. Version 2.1.2 added the second use above, the list on <em>More fun</em>, so that a pack published today does not need an app update to appear. Neither change altered what leaves your phone, because nothing leaves your phone.</p>
+<p>Until version 2.0.0 the app had no <code>INTERNET</code> permission at all, and this page said so. Packs then arrived as a file your browser downloaded, and the permission was added so that tapping <em>Open in Peel</em> works in one step instead of three. Version 2.1.2 added the list on <em>More fun</em>, so that a pack published today does not need an app update to appear. Neither of those changed what left your phone, because nothing did. Sending a pack in is the first feature that uploads anything, and this page was rewritten when it was built rather than after it shipped.</p>
 
 <h2>What the app holds</h2>
 <table>

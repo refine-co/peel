@@ -41,6 +41,7 @@ SCENES_DIR = SITE / "scenes"
 # site is where the downloadable files live and so the site is where the truth is.
 ASSETS = pathlib.Path.home() / "Projects/android-peel/app/src/main/assets"
 THUMBS = ASSETS / "catalogue"
+PREVIEWS = ASSETS / "previews"
 
 BASE = "https://peel.refineco.app"
 
@@ -56,6 +57,13 @@ NEEDS = {"pack": 1, "scene": 15}
 # that does know it means every older install greys the card out with "Update Peel to get
 # this" instead -- which is the wrong-in-the-harmless-direction failure.
 NEEDS_BY_ID: dict[str, int] = {"dead-honest": 23, "sir-crow": 23}
+
+# Packs that are sold. Peel 2.4.1 (versionCode 25) reads `paid` from the fetched list, so a paid
+# pack published from now on needs only an entry here and `needs` of 25 in NEEDS_BY_ID: no new
+# release has to add its fingerprint. Builds before 2.4.1 ignore the flag, which is why the new
+# pack's `needs` must be 25 -- those builds then grey the card instead of importing it free.
+# Dead Honest and Sir Crow are also compiled into the app (FreeContent.PAID_PACKS) and stay so.
+PAID_IDS: set[str] = {"dead-honest", "sir-crow"}
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
 # be a five-fold upscale; WebP with alpha because pack trays are cut-outs and a white box
@@ -134,6 +142,38 @@ def scene_entry(path: pathlib.Path) -> dict:
 # 105 KB on its own.
 THUMB_MAX = 420
 
+# One picture per sticker, for the sheet that opens under a pack's card in the app. 128 px
+# because a sheet tile is about 48 dp, which is 144 px on a 3x display, and the sheet shows every
+# sticker at once: at 128 px the whole catalogue is under a megabyte of APK, and at 256 px it
+# would be four times that for a tile nobody can look at closely.
+#
+# Not on the site and not in catalogue.json. The app derives the paths from the directory
+# (CatalogueStore.previews), so a pack published after a release simply has no pictures in that
+# release and its card offers the download instead -- rather than this travelling in the fetched
+# list, where the merge would drop it and the parser would have to cap it.
+PREVIEW_MAX = 128
+PREVIEW_QUALITY = 80
+
+
+def previews_of(path: pathlib.Path, files: list[str], out: pathlib.Path) -> int:
+    """Every sticker in the archive, scaled to a sheet tile. Returns the bytes written."""
+    out.mkdir(parents=True, exist_ok=True)
+    for stale in out.glob("*.webp"):
+        stale.unlink()
+    written = 0
+    with zipfile.ZipFile(path) as z:
+        for n, inner in enumerate(files, start=1):
+            im = Image.open(io.BytesIO(z.read(inner)))
+            # An animated sticker's preview is frame 0, the frame WhatsApp rests on and the one
+            # the app shows when it is not playing. The sheet says "animated"; the tiles do not.
+            im.seek(0)
+            im = im.convert("RGBA")
+            im.thumbnail((PREVIEW_MAX, PREVIEW_MAX), Image.LANCZOS)
+            target = out / f"{n:02d}.webp"
+            im.save(target, "WEBP", quality=PREVIEW_QUALITY, method=6)
+            written += target.stat().st_size
+    return written
+
 
 def thumb_of(path: pathlib.Path, inner: str, out: pathlib.Path) -> None:
     """The item's own picture, taken straight out of its archive and scaled to the grid."""
@@ -151,9 +191,13 @@ def main() -> None:
     THUMBS.mkdir(parents=True, exist_ok=True)
     items = []
 
+    preview_bytes = 0
     for p in sorted(PACKS_DIR.glob("*.peel")):
         entry = pack_entry(p)
         thumb_of(p, "tray.png", THUMBS / f"{entry['id']}.png")
+        with zipfile.ZipFile(p) as z:
+            stickers = [s["file"] for s in json.loads(z.read("manifest.json")).get("stickers", [])]
+        preview_bytes += previews_of(p, stickers, PREVIEWS / entry["id"])
         items.append(entry)
 
     for p in sorted(SCENES_DIR.glob("*.chill")):
@@ -168,6 +212,7 @@ def main() -> None:
     print(f"{out}  ({len(items)} items)")
     for i in items:
         print(f"  {i['kind']:5} {i['id']:18} {i['pieces']:3} pieces  {i['size']:>8}")
+    print(f"{PREVIEWS}  ({preview_bytes / 1024:.0f} KB of sheet pictures)")
 
     # The overlay. Same items, plus what the app cannot already have.
     overlay = []
@@ -178,6 +223,8 @@ def main() -> None:
             json.loads(zipfile.ZipFile(src).read("scene.json")).get("thumbnail", "thumb.jpg"))
         item = {k: v for k, v in entry.items() if k != "thumb"}
         item["needs"] = NEEDS_BY_ID.get(entry["id"], NEEDS[entry["kind"]])
+        if entry["id"] in PAID_IDS:
+            item["paid"] = True
         item["thumb"] = inline_thumb(src, inner, alpha=entry["kind"] == "pack")
         overlay.append(item)
 

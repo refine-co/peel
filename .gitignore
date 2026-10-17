@@ -1,2 +1,5 @@
 .omc/
 .DS_Store
+
+# The reference server keeps whatever it was sent while being tested.
+tools/submissions/
