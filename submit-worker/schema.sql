@@ -1,56 +1,42 @@
 -- Peel submissions. Applied with:
 --   npx wrangler d1 execute peel-submit --remote --file=schema.sql
 
--- One row per person. The email is stored normalised (dots and +suffix stripped on Gmail), so
--- a.b+peel@gmail.com and ab@gmail.com cannot become two accounts and two votes.
+-- One row per person, keyed on Google's subject claim. The address is whatever Google says it
+-- is and is kept only so a submitter can be written to; it is never shown to anybody.
 CREATE TABLE IF NOT EXISTS accounts (
   id          TEXT PRIMARY KEY,
-  email       TEXT NOT NULL UNIQUE,
+  -- Not unique: identity is google_sub. Somebody whose Google address changes would otherwise
+  -- collide with a stranger's old row and turn a sign-in into a 500.
+  email       TEXT NOT NULL,
   name        TEXT NOT NULL,
   created_at  INTEGER NOT NULL,
-  -- Set when a code is first verified. An unverified account may not vote.
+  -- Set when the account is made. A Google-verified address is the verification.
   verified_at INTEGER,
-  -- Set to silence somebody without deleting what they sent.
+  -- Set to silence somebody without deleting what they sent. Checked at sign-in as well as on
+  -- upload, or blocking means nothing to anybody who can still get a token.
   blocked_at  INTEGER,
-  -- Optional. An account works without one: the six-digit code by email is always available,
-  -- and is the reset path, so a forgotten password locks nobody out. Stored as PBKDF2-HMAC-
-  -- SHA256 over a per-account random salt, never as the password.
-  pw_hash     TEXT,
-  pw_salt     TEXT,
-  pw_iters    INTEGER,
-  -- Wrong-password count, here rather than on the code row. Keeping it with the code meant a
-  -- failed sign-in wrote a row into `codes`, which both poisoned the real code somebody was
-  -- holding and left an empty one behind that `verify` would accept.
-  signin_tries INTEGER NOT NULL DEFAULT 0
+  -- Google's subject claim, which is who a person is here. There is no password and no
+  -- emailed code: that machinery is where every authentication defect found on 17 Oct lived,
+  -- and it only ever proved an address was real, which Google tells us for nothing.
+  google_sub  TEXT
 );
+CREATE UNIQUE INDEX IF NOT EXISTS accounts_google_sub ON accounts(google_sub);
+CREATE INDEX IF NOT EXISTS accounts_email ON accounts(email);
 
 -- The row every deleted account's published submissions point at, so the credit on the website
 -- still resolves while the person behind it is gone. Not an account anybody can sign in to:
--- the address is unroutable and there is no password.
+-- its google_sub is NULL and there is no subject that matches NULL.
 INSERT OR IGNORE INTO accounts (id, email, name, created_at)
 VALUES ('deleted', 'deleted@invalid', 'A deleted account', 0);
 
--- Sign-in codes. Short-lived and single-use; tries is capped so a six-digit code cannot be
--- walked through at leisure.
-CREATE TABLE IF NOT EXISTS codes (
-  email      TEXT PRIMARY KEY,
-  -- Exactly six digits, always. A row with an empty code was a sign-in counter in an earlier
-  -- version, and `verify` happily matched it against a request that sent no code at all.
-  code       TEXT NOT NULL CHECK (length(code) = 6),
-  expires_at INTEGER NOT NULL,
-  tries      INTEGER NOT NULL DEFAULT 0
+-- One row per sign-in attempt, written before the token is checked and counted across
+-- everybody. Counting attempts rather than accounts is the whole point: a failed sign-in and
+-- a returning person both create no account, so an accounts-per-day ceiling never fires.
+CREATE TABLE IF NOT EXISTS sign_in_attempts (
+  id TEXT PRIMARY KEY,
+  at INTEGER NOT NULL
 );
-
--- One row per code asked for, kept only long enough to count. `codes` cannot do this job: its
--- primary key is the address, so a COUNT over it is always 0 or 1 and the per-hour ceiling it
--- was asked to enforce could never fire.
-CREATE TABLE IF NOT EXISTS code_requests (
-  id    TEXT PRIMARY KEY,
-  email TEXT NOT NULL,
-  at    INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS code_requests_email ON code_requests(email, at);
-CREATE INDEX IF NOT EXISTS code_requests_at ON code_requests(at);
+CREATE INDEX IF NOT EXISTS sign_in_attempts_at ON sign_in_attempts(at);
 
 -- Bearer tokens held on a phone. Deleting a row signs that device out.
 CREATE TABLE IF NOT EXISTS tokens (

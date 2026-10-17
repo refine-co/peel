@@ -1,12 +1,13 @@
 /**
  * Peel's submission API.
  *
- * The production version of site/tools/submit_server.py, which is the reference the Android
- * client was built and tested against. Same three endpoints, same refusal wording, same email
- * normalisation — if any of those drift apart, the app and the server disagree about identity.
+ * Signing in is Google and nothing else: the app sends an ID token, this checks it by hand and
+ * answers with Peel's own bearer token. There is no password, no emailed code and no reset,
+ * because Google already proves an address is real and the machinery that used to prove it
+ * was where every authentication defect in this file has been found.
  *
- *   POST /account/code    {"email","name"}        -> 204
- *   POST /account/verify  {"email","code"}        -> {"token"}
+ *   POST /account/google  {"idToken"}             -> {"token"}
+ *   POST /account/delete  Bearer                  -> {"published"}
  *   POST /packs           multipart + Bearer      -> {"id"}
  *
  * Nothing here publishes anything. Every pack lands in R2 with a row in `submissions` marked
@@ -32,10 +33,22 @@ const ENTRY = /^(manifest\.json|tray\.png|stickers\/\d{2}\.webp)$/;
 const MAX_RATIO = 60;
 const MAX_MANIFEST_BYTES = 256 * 1024;
 
-const CODE_TTL_MS = 15 * 60 * 1000;
-const MAX_CODE_TRIES = 5;
-const CODES_PER_HOUR = 5;
 const SUBMISSIONS_PER_DAY = 10;
+
+/* ---- signing in -----------------------------------------------------------
+ *
+ * Google's ID token is the whole of it. The six-digit code and the optional password this
+ * replaced were where all three authentication defects found on 17 Oct lived, and the code
+ * only ever proved an address was real — which Google tells us for nothing.
+ */
+const GOOGLE_CERTS = "https://www.googleapis.com/oauth2/v3/certs";
+const CLOCK_SKEW_S = 60;
+/** A token older than this is refused even if Google still considers it valid, which bounds replay. */
+const MAX_TOKEN_AGE_S = 5 * 60;
+/** How often an unknown key id may make this Worker ask Google for the key set. */
+const CERT_REFETCH_MS = 5 * 60 * 1000;
+/** Signed-in devices kept per account. Nothing else prunes the table. */
+const TOKENS_PER_ACCOUNT = 5;
 
 /* ---- the ceilings, so a bill cannot arrive as a surprise -------------------
  *
@@ -53,35 +66,22 @@ const SUBMISSIONS_PER_DAY = 10;
  */
 const TOTAL_STORED_BYTES = 8 * 1024 * 1024 * 1024;   // 8 GiB of the 10 GB free
 const GLOBAL_SUBMISSIONS_PER_DAY = 200;
-const GLOBAL_CODES_PER_DAY = 500;
-
-/* ---- passwords -------------------------------------------------------------
- *
- * Optional, and deliberately not the only way in. The six-digit code by email
- * stays: it is how a first account is made, and it is the reset path, so a
- * forgotten password locks nobody out and there is no "security question" to
- * get wrong.
- *
- * PBKDF2-HMAC-SHA256, because it is what WebCrypto gives a Worker — bcrypt and
- * argon2 are not available here. The iteration count is stored per account, so
- * raising it later does not invalidate anybody's existing password.
+/*
+ * Sign-in attempts, counted across everybody and written before the token is looked at. It has
+ * to count attempts: a failed sign-in creates no account and a returning person creates no
+ * account, so an accounts-per-day ceiling on its own would never fire — which is exactly the
+ * mistake the codes limits made, and the reason this endpoint exists at all.
  */
-/** Who the code comes from. See the note in sendCode for why it is not on peel.refineco.app. */
-const SENDER = "Peel <peel@refineco.app>";
-
-const PW_ITERATIONS = 100_000;
-const PW_MIN = 8;
-const SIGNIN_TRIES = 8;
+const SIGN_INS_PER_HOUR = 300;
+const SIGN_INS_PER_DAY = 2000;
+const ACCOUNTS_PER_DAY = 200;
 
 export default {
   async fetch(request, env) {
     if (request.method !== "POST") return refuse(405, "No such thing here.");
     const { pathname } = new URL(request.url);
     try {
-      if (pathname === "/account/code") return await accountCode(request, env);
-      if (pathname === "/account/verify") return await accountVerify(request, env);
-      if (pathname === "/account/signin") return await accountSignin(request, env);
-      if (pathname === "/account/password") return await accountPassword(request, env);
+      if (pathname === "/account/google") return await accountGoogle(request, env);
       if (pathname === "/account/delete") return await accountDelete(request, env);
       if (pathname === "/packs") return await packs(request, env);
     } catch (e) {
@@ -96,164 +96,203 @@ export default {
 
 /* ---------------------------------------------------------------- accounts */
 
-async function accountCode(request, env) {
-  const body = await json(request);
-  const address = field(body, "email");
-  const name = field(body, "name").slice(0, 60).trim();
-  if (!address || !name) return refuse(400, "A name and an email are needed.");
-  const email = normalise(address);
-  if (!email.includes("@")) return refuse(400, "That email does not look right.");
+/**
+ * Signing in, which is the only way an account is made.
+ *
+ * The app sends a Google ID token; this checks it and hands back Peel's own bearer token. There
+ * is nothing else: no password, no emailed code, no reset. That is the point — codes and
+ * passwords were where every authentication defect in this file has been, and Google already
+ * tells us an address is real, which was the only thing the code ever proved.
+ */
+async function accountGoogle(request, env) {
+  // Before anything. An unset variable would make the audience check `undefined !== undefined`,
+  // which is false, which accepts every Google token ever minted — the hole arrives by
+  // omission, not by a wrong comparison, and no happy-path test can see it.
+  const audience = env.GOOGLE_WEB_CLIENT_ID;
+  if (typeof audience !== "string" || !audience.endsWith(".apps.googleusercontent.com")) {
+    throw new Error("GOOGLE_WEB_CLIENT_ID is not configured");
+  }
 
   const now = Date.now();
   const hourAgo = now - 60 * 60 * 1000;
   const dayAgo = now - 24 * 60 * 60 * 1000;
 
-  // Counted from `code_requests`, one row per ask. The obvious query — COUNT over `codes` —
-  // can only ever answer 0 or 1, because that table's primary key is the address: the ceiling
-  // it was meant to enforce never fired, and an address could be sent an unlimited number of
-  // messages, each of which also reset the guess counter on the code and on the password.
-  const recent = await env.DB.prepare(
-    "SELECT COUNT(*) AS n FROM code_requests WHERE email = ? AND at > ?"
-  ).bind(email, hourAgo).first();
-  if ((recent?.n ?? 0) >= CODES_PER_HOUR) return refuse(429, "Too many codes asked for. Wait a while.");
-
-  // The endpoint needs no account, so it is the cheapest thing to abuse: every call is a
-  // request and a message. Counted across everybody, and counting codes rather than accounts
-  // created — asking repeatedly for one existing address creates no account at all.
-  const today = await env.DB.prepare(
-    "SELECT COUNT(*) AS n FROM code_requests WHERE at > ?"
-  ).bind(dayAgo).first();
-  if ((today?.n ?? 0) >= GLOBAL_CODES_PER_DAY) {
-    return refuse(429, "Peel is busy today. Try again tomorrow.");
+  // Counted before the work, not after, and counting attempts rather than accounts: a failed
+  // sign-in makes no account and a returning person makes no account, so an accounts-per-day
+  // ceiling would never fire. That was the shape of the dead limits this endpoint replaces.
+  const tried = await env.DB.prepare(
+    "SELECT COALESCE(SUM(CASE WHEN at > ? THEN 1 ELSE 0 END), 0) AS hour, COUNT(*) AS day " +
+    "FROM sign_in_attempts WHERE at > ?"
+  ).bind(hourAgo, dayAgo).first();
+  if ((tried?.hour ?? 0) >= SIGN_INS_PER_HOUR || (tried?.day ?? 0) >= SIGN_INS_PER_DAY) {
+    return refuse(429, "Peel is busy. Try again in a while.");
   }
-
-  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, "0");
-
-  // Sent before it is stored, and nothing here is caught. A send that fails must leave no
-  // trace: storing first meant five failed attempts locked an address out for an hour over
-  // messages that were never sent, and left an account behind for somebody who has no way in.
-  // The other order is worse in only one way — a code that arrives and then fails to store,
-  // which is rarer and recoverable by asking again.
-  await sendCode(env, email, code);
-
-  await env.DB.prepare(
-    "INSERT INTO codes (email, code, expires_at, tries) VALUES (?, ?, ?, 0) " +
-    "ON CONFLICT(email) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at, tries = 0"
-  ).bind(email, code, now + CODE_TTL_MS).run();
-
-  // Remember the name now so verify can create the account without being told again.
-  await env.DB.prepare(
-    "INSERT INTO accounts (id, email, name, created_at) VALUES (?, ?, ?, ?) " +
-    "ON CONFLICT(email) DO UPDATE SET name = excluded.name"
-  ).bind(crypto.randomUUID(), email, name, now).run();
-
   await env.DB.batch([
-    env.DB.prepare("INSERT INTO code_requests (id, email, at) VALUES (?, ?, ?)")
-      .bind(crypto.randomUUID(), email, now),
-    // Nothing else prunes this table, and it only exists to be counted.
-    env.DB.prepare("DELETE FROM code_requests WHERE at < ?").bind(dayAgo),
+    env.DB.prepare("INSERT INTO sign_in_attempts (id, at) VALUES (?, ?)")
+      .bind(crypto.randomUUID(), now),
+    env.DB.prepare("DELETE FROM sign_in_attempts WHERE at < ?").bind(dayAgo),
   ]);
-  return new Response(null, { status: 204 });
-}
 
-async function accountVerify(request, env) {
   const body = await json(request);
-  const code = field(body, "code").trim();
-  const address = field(body, "email");
-  if (!address || code.length !== 6) return refuse(400, "That did not look right.");
-  const email = normalise(address);
-  const now = Date.now();
+  const claims = await readGoogleToken(env, field(body, "idToken"), audience, now);
+  if (!claims) return refuse(401, "That sign-in did not work. Try again.");
 
-  const row = await env.DB.prepare("SELECT code, expires_at, tries FROM codes WHERE email = ?")
-    .bind(email).first();
-  if (!row || row.expires_at < now) return refuse(401, "That code has expired. Ask for another one.");
-  if (row.tries >= MAX_CODE_TRIES) return refuse(429, "Too many tries. Ask for another code.");
-  if (row.code !== code) {
-    await env.DB.prepare("UPDATE codes SET tries = tries + 1 WHERE email = ?").bind(email).run();
-    return refuse(401, "That code does not match. Check it and try again.");
+  const existing = await env.DB.prepare(
+    "SELECT id, blocked_at FROM accounts WHERE google_sub = ?"
+  ).bind(claims.sub).first();
+  // Checked before any write. An upsert would happily refresh a blocked row and hand back a
+  // token, which is how blocking quietly stops meaning anything.
+  if (existing?.blocked_at) return refuse(403, "This account cannot send packs.");
+
+  let accountId = existing?.id;
+  if (!accountId) {
+    const fresh = await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM accounts WHERE created_at > ?"
+    ).bind(dayAgo).first();
+    if ((fresh?.n ?? 0) >= ACCOUNTS_PER_DAY) {
+      return refuse(429, "Peel is busy today. Try again tomorrow.");
+    }
+    accountId = crypto.randomUUID();
+    await env.DB.prepare(
+      "INSERT INTO accounts (id, email, name, created_at, verified_at, google_sub) " +
+      "VALUES (?, ?, ?, ?, ?, ?)"
+    ).bind(accountId, claims.email, claims.name, now, now, claims.sub).run();
+  } else {
+    // Their Google name or address may have changed since last time.
+    await env.DB.prepare("UPDATE accounts SET email = ?, name = ? WHERE id = ?")
+      .bind(claims.email, claims.name, accountId).run();
   }
 
-  const account = await env.DB.prepare("SELECT id, blocked_at FROM accounts WHERE email = ?")
-    .bind(email).first();
-  if (!account) return refuse(401, "Ask for a code again.");
-  if (account.blocked_at) return refuse(403, "This account cannot send packs.");
-
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM codes WHERE email = ?").bind(email),
-    env.DB.prepare("UPDATE accounts SET verified_at = COALESCE(verified_at, ?) WHERE id = ?")
-      .bind(now, account.id),
-  ]);
-  return Response.json({ token: await issueToken(env, account.id) });
+  const token = await issueToken(env, accountId);
+  // Nothing else prunes this table. Token issuance used to sit behind the code ceilings and
+  // now sits behind nothing, so without this one Google account could fill D1's daily write
+  // allowance by signing in in a loop, and /packs would start failing for everybody.
+  await env.DB.prepare(
+    "DELETE FROM tokens WHERE account_id = ? AND token NOT IN " +
+    "(SELECT token FROM tokens WHERE account_id = ? ORDER BY created_at DESC LIMIT ?)"
+  ).bind(accountId, accountId, TOKENS_PER_ACCOUNT).run();
+  return Response.json({ token });
 }
 
 /**
- * Signing in with a password, for somebody who set one. Never the only way in — an account
- * with no password simply cannot use this, and is told to ask for a code instead.
+ * Google's ID token, checked by hand. Returns the claims, or null for anything at all wrong.
+ *
+ * Every step here is a check that has been got wrong somewhere before. The audience is what
+ * stops any Google token working; the `email_verified` comparison is spelled out because
+ * Google sends that claim as both a boolean and a string and `if (claim)` accepts `"false"`;
+ * `exp` is in seconds while `Date.now()` is milliseconds.
+ *
+ * What this does NOT prove: that the Peel app sent it. The client id is not a secret — it
+ * ships in the APK — and any app may ask Google for a token with it as the audience. So the
+ * worst case is somebody creating an account as themselves, which is what the app does anyway,
+ * and every pack is still read by a person. The `iat` age bound and the ceiling above carry
+ * the rest.
  */
-async function accountSignin(request, env) {
-  const body = await json(request);
-  const address = field(body, "email");
-  const password = field(body, "password");
-  if (!address || !password) return refuse(400, "An email and a password are needed.");
-  const email = normalise(address);
+async function readGoogleToken(env, idToken, audience, now) {
+  const parts = idToken.split(".");
+  if (parts.length !== 3 || parts.some((p) => p.length === 0)) return null;
 
-  const row = await env.DB.prepare(
-    "SELECT id, pw_hash, pw_salt, pw_iters, blocked_at, signin_tries FROM accounts WHERE email = ?"
-  ).bind(email).first();
-  // The same answer whether the address is unknown or the password is wrong, so this cannot be
-  // used to find out who has an account.
-  const wrong = () => refuse(401, "That email and password do not match. You can ask for a code instead.");
-  if (!row || !row.pw_hash) return wrong();
-  if (row.blocked_at) return refuse(403, "This account cannot send packs.");
+  const header = decodeSegment(parts[0]);
+  const claims = decodeSegment(parts[1]);
+  if (!header || !claims) return null;
+  // Pinning the algorithm in importKey already defeats the classic confusion — an HMAC
+  // signature will not verify against an RSA key — but checking it here turns a 500 from a
+  // thrown importKey into a refusal.
+  if (header.alg !== "RS256" || typeof header.kid !== "string") return null;
 
-  if ((row.signin_tries ?? 0) >= SIGNIN_TRIES) {
-    return refuse(429, "Too many tries. Ask for a code by email instead.");
-  }
+  const jwk = await googleKey(env, header.kid, now);
+  if (!jwk || jwk.kty !== "RSA") return null;
 
-  const hash = await hashPassword(password, row.pw_salt, row.pw_iters || PW_ITERATIONS);
-  if (!sameHash(hash, row.pw_hash)) {
-    // On the account, not on the code row. Writing it there let anybody who knew an address
-    // spend somebody else's code tries, and left a code-shaped row with nothing in it.
-    await env.DB.prepare("UPDATE accounts SET signin_tries = signin_tries + 1 WHERE id = ?")
-      .bind(row.id).run();
-    return wrong();
-  }
-  await env.DB.prepare("UPDATE accounts SET signin_tries = 0 WHERE id = ?").bind(row.id).run();
-  return Response.json({ token: await issueToken(env, row.id) });
+  const key = await crypto.subtle.importKey(
+    "jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]
+  );
+  const signed = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+  const signature = base64urlToBytes(parts[2]);
+  if (!signature) return null;
+  if (!(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, signed))) return null;
+
+  const seconds = Math.floor(now / 1000);
+  if (claims.iss !== "accounts.google.com" && claims.iss !== "https://accounts.google.com") return null;
+  if (typeof claims.aud !== "string" || claims.aud !== audience) return null;
+  if (typeof claims.exp !== "number" || claims.exp + CLOCK_SKEW_S < seconds) return null;
+  if (typeof claims.iat !== "number" || claims.iat > seconds + CLOCK_SKEW_S) return null;
+  // Bounds replay: a token stays valid to Google for about an hour, and this is cheaper than
+  // keeping a nonce or a seen-token table for a flow that runs once per account.
+  if (seconds - claims.iat > MAX_TOKEN_AGE_S) return null;
+  if (claims.email_verified !== true && claims.email_verified !== "true") return null;
+  if (typeof claims.sub !== "string" || claims.sub.length === 0) return null;
+  if (typeof claims.email !== "string" || claims.email.length === 0) return null;
+
+  return {
+    sub: claims.sub,
+    email: claims.email.toLowerCase(),
+    name: (typeof claims.name === "string" ? claims.name : "").slice(0, 60).trim() || "Someone",
+  };
 }
 
-/** Sets or changes the password. Needs a current token, which means a code was verified. */
-async function accountPassword(request, env) {
-  const session = await whoIs(request, env);
-  if (!session) return refuse(401, "Sign in again first.");
-  if (session.blocked_at) return refuse(403, "This account cannot send packs.");
-  const body = await json(request);
-  const password = field(body, "password");
-  if (password.length < PW_MIN) return refuse(400, `A password needs at least ${PW_MIN} characters.`);
+/**
+ * One of Google's signing keys, by id.
+ *
+ * Kept in the edge cache rather than a module global, so it survives an isolate being recycled
+ * and honours the max-age Google sets. A miss refetches — but at most every REFETCH_MS,
+ * because the key id arrives in an unauthenticated body: without the throttle, a loop of
+ * invented ids is one outbound request to Google each, until Google rate-limits this Worker
+ * and real sign-ins start failing. An unknown id between refetches is simply refused, which is
+ * what an invented one deserves.
+ */
+async function googleKey(env, kid, now) {
+  const cache = caches.default;
+  let answer = await cache.match(GOOGLE_CERTS);
+  let keys = answer ? await answer.json().catch(() => null) : null;
+  let found = keys?.keys?.find((k) => k.kid === kid);
+  if (found) return found;
 
-  const salt = [...crypto.getRandomValues(new Uint8Array(16))]
-    .map((b) => b.toString(16).padStart(2, "0")).join("");
-  const hash = await hashPassword(password, salt, PW_ITERATIONS);
-  await env.DB.batch([
-    env.DB.prepare(
-      "UPDATE accounts SET pw_hash = ?, pw_salt = ?, pw_iters = ?, signin_tries = 0 WHERE id = ?"
-    ).bind(hash, salt, PW_ITERATIONS, session.id),
-    // Changing a password has to mean something. Every other phone is signed out; this one
-    // keeps the token it arrived with.
-    env.DB.prepare("DELETE FROM tokens WHERE account_id = ? AND token != ?")
-      .bind(session.id, session.token),
-  ]);
-  return new Response(null, { status: 204 });
+  const last = Number(lastCertFetch) || 0;
+  if (now - last < CERT_REFETCH_MS) return null;
+  lastCertFetch = now;
+
+  const fresh = await fetch(GOOGLE_CERTS, { cf: { cacheTtl: 3600 } });
+  if (!fresh.ok) return null;
+  const copy = fresh.clone();
+  await cache.put(GOOGLE_CERTS, copy);
+  keys = await fresh.json().catch(() => null);
+  return keys?.keys?.find((k) => k.kid === kid) ?? null;
+}
+
+/** Last time Google's keys were fetched, per isolate. Only the throttle reads it. */
+let lastCertFetch = 0;
+
+function decodeSegment(segment) {
+  const bytes = base64urlToBytes(segment);
+  if (!bytes) return null;
+  try {
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    return null;
+  }
+}
+
+/** base64url, which atob does not accept: the two characters differ and the padding is gone. */
+function base64urlToBytes(text) {
+  try {
+    const padded = text.replace(/-/g, "+").replace(/_/g, "/")
+      .padEnd(text.length + ((4 - (text.length % 4)) % 4), "=");
+    const binary = atob(padded);
+    const out = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+    return out;
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Deleting the account, which has to mean deleting it.
  *
- * Removes the address, the name, the password, every signed-in device, and every pack still
- * waiting to be read — files and rows both. A pack already *published* is not removed here:
- * other people have downloaded it, so taking it out of the catalogue is a separate, slower
- * thing a person does, and the privacy policy says so rather than implying a button that
- * cannot deliver.
+ * Removes the address, the name, every signed-in device, and every pack still waiting to be
+ * read — files and rows both. A pack already *published* is not removed here: other people
+ * have downloaded it, so taking it out of the catalogue is a separate, slower thing a person
+ * does, and the privacy policy says so rather than implying a button that cannot deliver.
  */
 async function accountDelete(request, env) {
   const session = await whoIs(request, env);
@@ -489,59 +528,6 @@ async function inflateEntry(bytes, entry, limit) {
 
 /* ------------------------------------------------------------------ pieces */
 
-/** Must agree with AccountStore.normalise on the client. */
-function normalise(email) {
-  const trimmed = email.trim().toLowerCase();
-  const at = trimmed.lastIndexOf("@");
-  if (at <= 0) return trimmed;
-  const domain = trimmed.slice(at + 1);
-  let local = trimmed.slice(0, at).split("+")[0];
-  if (domain === "gmail.com" || domain === "googlemail.com") local = local.replaceAll(".", "");
-  return `${local}@${domain}`;
-}
-
-/**
- * Sends the code, or throws.
- *
- * Both halves of that matter. Printing the code to the console instead was a development
- * convenience with no check on where it was running, so on the deployed Worker it put every
- * sign-in code into the log stream in plain text and still answered 204 — the phone said a
- * code was on its way and none ever was. The log branch now needs DEV set explicitly, and a
- * refusal from the provider is a failure here rather than a silent success.
- */
-async function sendCode(env, email, code) {
-  if (!env.EMAIL) {
-    if (env.DEV !== "1") throw new Error("no EMAIL binding: refusing to pretend a code was sent");
-    // `wrangler dev --var DEV:1`: print it, exactly like the reference server. The binding
-    // cannot deliver from a local run, and this is the only way to drive the account flow
-    // from a phone without spending real sends.
-    console.log(`*** code for ${email}: ${code} ***`);
-    return;
-  }
-  // Cloudflare Email Sending, which the Workers Paid plan this already needs includes: 3,000
-  // messages a month, then $0.35 per thousand. Peel sends one per account.
-  //
-  // The sender is on refineco.app and not on peel.refineco.app, which cannot hold the records
-  // this needs: that name is a CNAME to GitHub Pages, and a name with a CNAME on it can carry
-  // neither MX nor TXT. refineco.app already runs Email Routing, so a reply to this address
-  // reaches a person.
-  await env.EMAIL.send({
-    from: SENDER,
-    to: email,
-    subject: `${code} is your Peel code`,
-    text:
-      `${code}\n\nType this into Peel to finish sending your pack. It is good for 15 minutes.\n\n` +
-      `If you did not ask for it, nothing has happened and you can ignore this.`,
-  });
-  // Nothing is caught here on purpose. An unverified sender, a suppressed recipient or a
-  // refused send throws, which becomes a 500 and the phone says it could not reach Peel.
-  // Answering 204 to a message that was refused leaves somebody waiting for a code forever.
-  //
-  // What this cannot tell you: _dmarc.refineco.app is p=reject, sp=reject, so a send Cloudflare
-  // accepts can still be rejected at the far end if DKIM is not aligned. A successful call is
-  // not proof of delivery — the first real address has to be checked by hand.
-}
-
 /**
  * One field out of a parsed JSON body, as a string, or "".
  *
@@ -564,25 +550,6 @@ async function json(request) {
 
 function refuse(status, error) {
   return Response.json({ error }, { status });
-}
-
-async function hashPassword(password, saltHex, iterations) {
-  const salt = Uint8Array.from(saltHex.match(/../g).map((h) => parseInt(h, 16)));
-  const key = await crypto.subtle.importKey(
-    "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256
-  );
-  return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/** Compares without leaking where two hashes first differ. */
-function sameHash(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 async function issueToken(env, accountId) {

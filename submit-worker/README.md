@@ -25,18 +25,33 @@ npx wrangler d1 execute peel-submit --remote --file=migrations/<file>.sql
 ./check.sh                                            # against `wrangler dev`, first
 ```
 
-**Email is the one thing still missing, and nothing works without it.** `/account/code` is how
-every account is made, so until the Worker can send a message the feature is dead: with no
-`EMAIL` binding able to deliver, every send throws, which becomes a 500 and the phone says it
-could not reach Peel. That is deliberate. It used to print the code to the console and answer
-204, with no check on where it was running — on the deployed Worker that put every sign-in code
-into the log stream in plain text while telling people a message was on its way that never came.
+## Signing in
 
-Sending goes through **Cloudflare Email Sending**, not a third party: the Workers Paid plan this
-already needs includes 3,000 messages a month, then $0.35 per thousand, and there is no API key
-to store. Peel sends one message per account.
+Google, and nothing else. The app gets an ID token through Credential Manager and posts it to
+`/account/google`; this Worker checks the signature against Google's published keys and hands
+back Peel's own bearer token, which is what every other endpoint already takes.
 
-### Turning it on
+There is no password, no emailed code and no reset. That is the point. The code-and-password
+machinery is where all three authentication defects found on 17 Oct lived — an account
+takeover through a type confusion in `verify`, and two rate limits that were queries which
+could never fire — and the code only ever proved an address was real, which Google tells us
+for nothing. Nothing is emailed now, so there is no provider, no API key and no sending domain.
+
+`GOOGLE_WEB_CLIENT_ID` in `wrangler.toml` is the audience every token must carry. It is not a
+secret — the same value ships inside the APK — but it is load-bearing: if it is missing the
+endpoint throws rather than falling back, because an undefined audience compares equal to a
+token that has none, which would accept anything Google ever signed.
+
+What the audience check does *not* prove is that the Peel app sent the token. Any app can ask
+Google for one with this client id as its audience. The worst that buys is an account created
+as the person themselves, which is what the real app does, and every pack is read by a person
+before it is published. The `iat` age bound and the sign-in ceiling carry the rest.
+
+The three OAuth clients — web, Android release, Android debug — live in the Google Cloud
+project `peel-511906`, whose consent screen is published in production, so any Google account
+works and not only listed test users.
+
+## Turning it on
 
 The sender is `peel@refineco.app`, set as `SENDER` in `src/index.js`. It is **not** on
 `peel.refineco.app`: that name is a CNAME to GitHub Pages, and a name carrying a CNAME can hold

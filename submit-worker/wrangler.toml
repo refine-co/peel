@@ -8,8 +8,10 @@ name = "peel-submit"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
-# Workers Paid. The free plan allows about 10 ms of CPU per request, and opening a
-# multi-megabyte zip to check it does not fit in that.
+# This account is on Workers *Free* — checked in Billing on 17 Oct 2026, after an earlier note
+# here claimed otherwise. Free allows about 10 ms of CPU per request, and /packs hashes up to
+# 8 MiB and walks a zip inside that budget. A 5.4 MB pack went through production on 17 Oct,
+# so it fits, but there is not much room: if large packs ever start answering 500, this is why.
 
 [[d1_databases]]
 binding = "DB"
@@ -20,21 +22,14 @@ database_id = "5a852b9c-3c7b-4ee9-bf92-a4094ed9d664"
 binding = "PACKS"
 bucket_name = "peel-submissions"
 
-# Cloudflare Email Sending, which the Workers Paid plan above already includes: 3,000 messages
-# a month, then $0.35 per thousand. The sender address is in src/index.js and lives on
-# refineco.app, not on peel.refineco.app — that name is a CNAME to GitHub Pages and so can hold
-# neither MX nor TXT.
-#
-# refineco.app has to be onboarded to Email Service once, in the dashboard, before this can send
-# to anybody but a verified address on the account. Until then every send throws and the phone
-# says it could not reach Peel, which is the honest answer.
-[[send_email]]
-name = "EMAIL"
-
 [vars]
 # Where a refusal tells people to write. Not a secret.
 CONTACT = "refine.co.my@gmail.com"
 
-# No secrets any more: email goes through the binding above rather than a third party, so there
-# is no API key to store. DEV=1 is set on the command line for local runs only, and makes
-# sendCode print the code instead of sending it.
+# The audience every Google ID token must carry, and the serverClientId the Android app asks
+# Google for. Not a secret — it ships inside the APK. It is still load-bearing: if this is
+# missing, /account/google throws rather than falling back, because an undefined audience
+# compares equal to a token with no audience and would accept anything Google ever signed.
+GOOGLE_WEB_CLIENT_ID = "1072147454316-1vfqpurdr084eabr3q87pojqv370bf3o.apps.googleusercontent.com"
+
+# No secrets at all. Nothing is emailed, so there is no provider and no API key.
