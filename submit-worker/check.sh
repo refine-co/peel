@@ -8,9 +8,10 @@
 # written. None of them is visible from the happy path, which is the whole reason this file
 # exists. Run it before a deploy. It writes to the *local* database only.
 #
-# WHAT THIS CANNOT COVER, stated rather than implied: a *successful* sign-in. Nothing here can
-# mint a token Google has signed, so the positive path is a device test and only a device
-# test. There is deliberately no DEV-mode bypass that would accept an unsigned token — the
+# WHAT THIS CANNOT COVER, stated rather than implied: a *successful* sign-in, and the
+# signature check itself. Nothing here can mint a token Google has signed, so that much is a
+# device test and only a device test. Everything the signature check guards — the audience,
+# the expiry, email_verified — is covered by test/claims.test.js instead, which runs first. There is deliberately no DEV-mode bypass that would accept an unsigned token — the
 # previous version of this Worker printed sign-in codes to the production log because a dev
 # convenience had a weak check on where it was running, and that is the standing reminder.
 
@@ -18,6 +19,19 @@ set -u
 B="${1:-http://127.0.0.1:8787}"
 pass=0
 fail=0
+
+# The claim checks first, directly, with no server and no network.
+#
+# They have to be tested this way. Every token these HTTP cases can build is refused by the
+# signature check long before a claim is compared, so deleting the audience comparison
+# outright still left this file reporting all green. node --test reaches them.
+echo "Claim checks (node --test)"
+if node --test test/claims.test.js > /dev/null 2>&1; then
+  printf '  ok    claims\n'; pass=$((pass + 1))
+else
+  printf '  FAIL  claims — run: node --test test/claims.test.js\n'; fail=$((fail + 1))
+fi
+echo
 
 check() { # check <name> <expected status> <actual status>
   if [ "$2" = "$3" ]; then

@@ -37,8 +37,14 @@ CREATE TABLE accounts_new (
   google_sub  TEXT
 );
 
+-- google_sub is carried through where the column already exists, and the WHERE is a guard
+-- that cannot be skipped: run a second time on a database holding real accounts, the copy
+-- takes nothing, DROP removes the originals and every identity is gone. Re-running this file
+-- on an already-migrated database with more than the tombstone in it now copies nothing and
+-- the DROP below fails on the foreign keys, which is a loud stop rather than a silent wipe.
 INSERT INTO accounts_new (id, email, name, created_at, verified_at, blocked_at, google_sub)
-  SELECT id, email, name, created_at, verified_at, blocked_at, NULL FROM accounts;
+  SELECT id, email, name, created_at, verified_at, blocked_at, NULL FROM accounts
+  WHERE (SELECT COUNT(*) FROM accounts) = 1;
 
 DROP TABLE accounts;
 ALTER TABLE accounts_new RENAME TO accounts;
@@ -46,8 +52,8 @@ ALTER TABLE accounts_new RENAME TO accounts;
 -- The only legal way to get the constraint. The tombstone's google_sub is NULL and SQLite
 -- allows any number of NULLs under a unique index, so it cannot collide and cannot be signed
 -- into — there is no subject to match it.
-CREATE UNIQUE INDEX accounts_google_sub ON accounts(google_sub);
-CREATE INDEX accounts_email ON accounts(email);
+CREATE UNIQUE INDEX IF NOT EXISTS accounts_google_sub ON accounts(google_sub);
+CREATE INDEX IF NOT EXISTS accounts_email ON accounts(email);
 
 INSERT OR IGNORE INTO accounts (id, email, name, created_at)
 VALUES ('deleted', 'deleted@invalid', 'A deleted account', 0);

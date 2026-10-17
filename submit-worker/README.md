@@ -1,28 +1,33 @@
 # Peel submission API
 
-The server the app posts a pack to. `site/tools/submit_server.py` is the same contract as a
-local script, and is what the Android client was built and tested against; this is the version
-that runs on Cloudflare.
+The server the app posts a pack to, and the only contract there is: the local reference server
+that used to sit beside this is gone, because a reference that cannot verify a Google
+signature specifies nothing.
 
-## State, 17 Oct 2026
+## State, 18 Oct 2026
 
 This folder is published with the website, so it says what the Worker does and not which
-account it runs under. The account details, the plan and the billing are in the vault notes.
+account it runs under. Account details and billing are in the vault notes.
 
 **Running:**
 
-- D1 database `peel-submit` and R2 bucket `peel-submissions`, both created.
-- The Worker is deployed at `https://peel-submit.refineco.workers.dev`, which is the address
-  the app posts to (`SUBMIT_BASE_URL` in `app/build.gradle.kts`).
-- Workers Paid, because the free plan allows about 10 ms of CPU per request and opening a
-  multi-megabyte zip to check it does not fit in that.
+- D1 database `peel-submit` and R2 bucket `peel-submissions`.
+- Deployed at `https://peel-submit.refineco.workers.dev`, which is the address the app posts
+  to (`SUBMIT_BASE_URL` in `app/build.gradle.kts`).
+- **Workers Free.** An earlier note here said Paid; Billing says otherwise. Free allows about
+  10 ms of CPU per request, and `/packs` hashes up to 8 MiB and walks a zip inside that
+  budget — a 5.4 MB pack went through on 17 Oct, so it fits, but not with much room. Large
+  packs answering 500 would point here first.
+- `caches.default` does nothing on a `workers.dev` subdomain. Google's signing keys are
+  therefore held in a module global, not the edge cache. Relying on the cache meant the keys
+  were never retained, and the refetch throttle then refused honest sign-ins.
 
 **Deploying a change:**
 
 ```
-npx wrangler deploy                                   # the Worker
+./check.sh                                            # first, against `wrangler dev`
+npx wrangler deploy
 npx wrangler d1 execute peel-submit --remote --file=migrations/<file>.sql
-./check.sh                                            # against `wrangler dev`, first
 ```
 
 ## Signing in
@@ -51,64 +56,47 @@ The three OAuth clients — web, Android release, Android debug — live in the 
 project `peel-511906`, whose consent screen is published in production, so any Google account
 works and not only listed test users.
 
-## Turning it on
-
-The sender is `peel@refineco.app`, set as `SENDER` in `src/index.js`. It is **not** on
-`peel.refineco.app`: that name is a CNAME to GitHub Pages, and a name carrying a CNAME can hold
-neither MX nor TXT, so no sending domain can live there. `refineco.app` already runs Email
-Routing — MX to `route1/2/3.mx.cloudflare.net` and `v=spf1 include:_spf.mx.cloudflare.net` — so
-half of this is in place and a reply to the address reaches a person.
-
-In the Cloudflare dashboard, on the `refineco.app` zone: **Email → Email Service → Sending**,
-onboard the domain, and add the DKIM records it offers (it can add them itself, since the zone
-is on Cloudflare). Then add `peel@refineco.app` as a verified sender.
-
-**Check the first real message by hand.** `_dmarc.refineco.app` is `p=reject; sp=reject`, so a
-send Cloudflare accepts can still be thrown away at the far end if DKIM is not aligned, and
-nothing in the Worker can see that. A successful call is not proof of delivery.
-
 ### Working on it locally
 
-The binding cannot deliver from `wrangler dev`, so for local work:
-
 ```
-npx wrangler dev --local --port 8787 --var DEV:1   # prints the code instead of sending it
-adb reverse tcp:8787 tcp:8787                      # the phone's localhost is this machine
-./check.sh
+./check.sh                                    # claim unit tests, then the HTTP surface
+npx wrangler dev --local --port 8787          # a local Worker
+adb reverse tcp:8787 tcp:8787                 # the phone's localhost becomes this machine
+./check.sh                                    # again, now against the running Worker
 ```
 
 and build the app's debug variant with `SUBMIT_BASE_URL` set to `http://localhost:8787` —
 `SubmitClient` allows plain HTTP only in a debug build, and only for localhost, 127.0.0.1 and
 the emulator's 10.0.2.2.
 
-## What is still missing after that
-
-- **A review queue.** Packs land in R2 with a row in `submissions` marked `waiting`, and there
-  is no screen to look at them yet. Until there is: `npx wrangler d1 execute peel-submit
-  --remote --command "SELECT id, credit, pack_name, stickers, created_at FROM submissions WHERE
-  state = 'waiting'"`.
-- **Voting.** The `votes` table exists; nothing writes to it. The app has no Community section
-  to vote from yet.
-- **Deletion.** PDPA says somebody must be able to remove their account and their data. There
-  is no endpoint for it, and it should exist before real people use this.
-- **The paperwork.** `site/privacy.html` still says "no server that holds your work" and
-  "traffic only ever goes one way". Both stop being true the day this goes live, and the Play
-  data-safety form has to say that name and email are collected.
+`check.sh` runs `node --test test/claims.test.js` first, and that is where the audience, the
+expiry and `email_verified` are really tested. Every token the HTTP cases can build is refused
+by the signature long before a claim is compared, so those cases alone stayed green with the
+audience comparison deleted outright. A real sign-in still cannot be tested without a device,
+and there is deliberately no bypass that would accept an unsigned token.
 
 ## What it does
 
 | | |
 |---|---|
-| `POST /account/code` | `{email, name}` → 204, and a six-digit code is emailed. One live code per address, 15 minutes, five tries. |
-| `POST /account/verify` | `{email, code}` → `{token}`. The token goes in the phone's own storage and nowhere else. |
+| `POST /account/google` | `{idToken}` → `{token}`. A Google ID token in, Peel's own bearer token out. The only way an account is made. |
+| `POST /account/delete` | Bearer → `{published}`. Removes the account, its tokens and every pack still waiting, files and rows. Published packs survive, pointed at a tombstone row, and the count comes back so the person can be told. |
 | `POST /packs` | multipart with a Bearer token → `{id}`. Ten a day per account. |
 
-**Email addresses are normalised before anything else** — lowercased, `+suffix` dropped, and on
-Gmail the dots removed — so one mailbox is one account and cannot become a hundred votes. The
-client does the same thing in `AccountStore.normalise`; if the two ever disagree, they disagree
-about who somebody is.
+Identity is Google's `sub`, not an address — so somebody changing their Google email keeps
+their account, and there is no address normalising to keep in step between two codebases.
 
-**Nothing is published by this.** Every pack waits for a person.
+**Nothing is published by this.** Every pack waits for a person. `site/tools/peel_review.py`
+is how they are read and published.
+
+## Still missing
+
+- **A review queue with a screen.** `peel_review.py list / show / publish / refuse` is it.
+- **Voting.** The `votes` table exists; nothing writes to it, and the app has no Community
+  section to vote from.
+- **Telling somebody their pack was refused.** `peel_review.py refuse` marks the row and says
+  so; the message is still one you write by hand.
+- **The Play data-safety form**, which has to declare name, email address and a user ID.
 
 ## The zip check
 

@@ -144,33 +144,41 @@ async function accountGoogle(request, env) {
   // token, which is how blocking quietly stops meaning anything.
   if (existing?.blocked_at) return refuse(403, "This account cannot send packs.");
 
-  let accountId = existing?.id;
-  if (!accountId) {
+  if (!existing) {
     const fresh = await env.DB.prepare(
       "SELECT COUNT(*) AS n FROM accounts WHERE created_at > ?"
     ).bind(dayAgo).first();
     if ((fresh?.n ?? 0) >= ACCOUNTS_PER_DAY) {
       return refuse(429, "Peel is busy today. Try again tomorrow.");
     }
-    accountId = crypto.randomUUID();
-    await env.DB.prepare(
-      "INSERT INTO accounts (id, email, name, created_at, verified_at, google_sub) " +
-      "VALUES (?, ?, ?, ?, ?, ?)"
-    ).bind(accountId, claims.email, claims.name, now, now, claims.sub).run();
-  } else {
-    // Their Google name or address may have changed since last time.
-    await env.DB.prepare("UPDATE accounts SET email = ?, name = ? WHERE id = ?")
-      .bind(claims.email, claims.name, accountId).run();
   }
+  // One statement, upsert, returning the id. A plain INSERT after a SELECT that found nothing
+  // loses a race with itself: a double tap or a retry after the client's timeout has both
+  // requests reading "no row", both inserting, and the loser throwing a UNIQUE violation into
+  // the 500 handler — which the phone shows as "could not reach Peel" on somebody's very
+  // first sign-in. Their Google name or address may also have changed since last time, which
+  // this refreshes either way.
+  const account = await env.DB.prepare(
+    "INSERT INTO accounts (id, email, name, created_at, verified_at, google_sub) " +
+    "VALUES (?, ?, ?, ?, ?, ?) " +
+    "ON CONFLICT(google_sub) DO UPDATE SET email = excluded.email, name = excluded.name " +
+    "RETURNING id"
+  ).bind(crypto.randomUUID(), claims.email, claims.name, now, now, claims.sub).first();
+  const accountId = account?.id;
+  if (!accountId) return refuse(401, "That sign-in did not work. Try again.");
 
   const token = await issueToken(env, accountId);
   // Nothing else prunes this table. Token issuance used to sit behind the code ceilings and
   // now sits behind nothing, so without this one Google account could fill D1's daily write
   // allowance by signing in in a loop, and /packs would start failing for everybody.
+  //
+  // The token just handed out is excluded by name rather than trusted to sort to the top:
+  // several tokens can share a created_at millisecond, and the tie-break is not ours to
+  // choose, so the row this request depends on could otherwise be the one deleted.
   await env.DB.prepare(
-    "DELETE FROM tokens WHERE account_id = ? AND token NOT IN " +
+    "DELETE FROM tokens WHERE account_id = ? AND token != ? AND token NOT IN " +
     "(SELECT token FROM tokens WHERE account_id = ? ORDER BY created_at DESC LIMIT ?)"
-  ).bind(accountId, accountId, TOKENS_PER_ACCOUNT).run();
+  ).bind(accountId, token, accountId, TOKENS_PER_ACCOUNT - 1).run();
   return Response.json({ token });
 }
 
@@ -200,7 +208,7 @@ async function readGoogleToken(env, idToken, audience, now) {
   // thrown importKey into a refusal.
   if (header.alg !== "RS256" || typeof header.kid !== "string") return null;
 
-  const jwk = await googleKey(env, header.kid, now);
+  const jwk = await googleKey(header.kid, now);
   if (!jwk || jwk.kty !== "RSA") return null;
 
   const key = await crypto.subtle.importKey(
@@ -211,7 +219,23 @@ async function readGoogleToken(env, idToken, audience, now) {
   if (!signature) return null;
   if (!(await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signature, signed))) return null;
 
-  const seconds = Math.floor(now / 1000);
+  return checkClaims(claims, audience, Math.floor(now / 1000));
+}
+
+/**
+ * Everything about a token that is true or false without any cryptography.
+ *
+ * Split out and exported for one reason: it is the only way these checks get tested. They sit
+ * after the signature check, so nothing reachable without a key Google signed with ever
+ * executes them — `check.sh` can send a thousand malformed tokens and every one is refused by
+ * the signature long before `aud` is compared. Deleting the audience line outright used to
+ * leave the suite green. Now `node --test` runs this directly.
+ *
+ * Returns the fields worth keeping, or null, and never throws.
+ */
+export function checkClaims(claims, audience, seconds) {
+  if (!claims || typeof claims !== "object") return null;
+  if (typeof audience !== "string" || audience.length === 0) return null;
   if (claims.iss !== "accounts.google.com" && claims.iss !== "https://accounts.google.com") return null;
   if (typeof claims.aud !== "string" || claims.aud !== audience) return null;
   if (typeof claims.exp !== "number" || claims.exp + CLOCK_SKEW_S < seconds) return null;
@@ -219,6 +243,8 @@ async function readGoogleToken(env, idToken, audience, now) {
   // Bounds replay: a token stays valid to Google for about an hour, and this is cheaper than
   // keeping a nonce or a seen-token table for a flow that runs once per account.
   if (seconds - claims.iat > MAX_TOKEN_AGE_S) return null;
+  // Google sends this as a boolean and as a string, and `if (claims.email_verified)` accepts
+  // the string "false". Spelled out for that reason.
   if (claims.email_verified !== true && claims.email_verified !== "true") return null;
   if (typeof claims.sub !== "string" || claims.sub.length === 0) return null;
   if (typeof claims.email !== "string" || claims.email.length === 0) return null;
@@ -240,27 +266,34 @@ async function readGoogleToken(env, idToken, audience, now) {
  * and real sign-ins start failing. An unknown id between refetches is simply refused, which is
  * what an invented one deserves.
  */
-async function googleKey(env, kid, now) {
-  const cache = caches.default;
-  let answer = await cache.match(GOOGLE_CERTS);
-  let keys = answer ? await answer.json().catch(() => null) : null;
-  let found = keys?.keys?.find((k) => k.kid === kid);
-  if (found) return found;
+async function googleKey(kid, now) {
+  if (certs.keys.some((k) => k.kid === kid)) {
+    return certs.keys.find((k) => k.kid === kid);
+  }
+  // Only once we are holding a key set that is actually fresh does an unknown id mean a
+  // forgery. Throttling on "we did not find it" instead refuses valid tokens: the keys were
+  // held only in the edge cache, so any miss after a recent fetch — which on a workers.dev
+  // subdomain is every single time, because the Cache API does nothing there — returned null
+  // for a key Google had signed with minutes earlier. Retrying made it worse, not better.
+  if (certs.at && now - certs.at < CERT_REFETCH_MS) return null;
 
-  const last = Number(lastCertFetch) || 0;
-  if (now - last < CERT_REFETCH_MS) return null;
-  lastCertFetch = now;
-
-  const fresh = await fetch(GOOGLE_CERTS, { cf: { cacheTtl: 3600 } });
-  if (!fresh.ok) return null;
-  const copy = fresh.clone();
-  await cache.put(GOOGLE_CERTS, copy);
-  keys = await fresh.json().catch(() => null);
-  return keys?.keys?.find((k) => k.kid === kid) ?? null;
+  const fresh = await fetch(GOOGLE_CERTS).catch(() => null);
+  if (!fresh?.ok) return null;
+  const body = await fresh.json().catch(() => null);
+  if (!Array.isArray(body?.keys)) return null;
+  certs = { at: now, keys: body.keys };
+  return certs.keys.find((k) => k.kid === kid) ?? null;
 }
 
-/** Last time Google's keys were fetched, per isolate. Only the throttle reads it. */
-let lastCertFetch = 0;
+/**
+ * Google's signing keys, held for the life of this isolate.
+ *
+ * A module global and not the edge cache. `caches.default` is a no-op on a workers.dev
+ * subdomain, so relying on it meant the keys were never actually retained and the refetch
+ * throttle fell on honest sign-ins. An isolate-local copy costs nothing, works on any host,
+ * and the throttle now only applies when this is populated and recent.
+ */
+let certs = { at: 0, keys: [] };
 
 function decodeSegment(segment) {
   const bytes = base64urlToBytes(segment);
