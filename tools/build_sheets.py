@@ -128,6 +128,15 @@ PACKS = [
         "section": "From the makers",
     },
     {
+        "slug": "oyen-kampung",
+        "title": "Oyen Kampung",
+        "spec": "oyen-kampung.json",
+        "c1": "#ff9a3c", "c2": "#7a4a2a",
+        "sub": "12 stickers \u00b7 one ginger cat for everyday words: Not me, Hungry, Stay calm, Thank you, Maybe later",
+        "after": 'Download first \u2014 <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
         "slug": "say-it",
         "title": "Say it",
         "spec": "say-it.json",
