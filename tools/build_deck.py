@@ -145,13 +145,16 @@ def rail_html(items, kind):
     }.get(kind, ("pack", "Sticker packs"))
     count = len(items)
     thing = "scene" if scenes else ("pack from the community" if kind == "community" else "sticker pack")
+    # What "scroll back to the wheel" means for this rail: its own section, never a
+    # neighbour's. Getting this wrong sends a reader to the top of a different section.
+    anchor = {"scenes": "scenes", "community": "community"}.get(kind, "packs")
     lead = (f'  <p class="rail-lead">{count} {thing}{"" if count == 1 else "s"}. '
             f'<span>Swipe to see {"them all" if count != 1 else "it"}.</span></p>')
     return (
         f'<nav class="rail-wrap" aria-label="{label}">\n'
         f'{lead}\n'
         f'  <button class="rail-arrow prev" type="button" aria-label="Previous {noun}" hidden>\u2039</button>\n'
-        f'  <div class="rail" id="rail-{kind}" data-kind="{kind}" data-anchor="{"scenes" if scenes else "packs"}" '
+        f'  <div class="rail" id="rail-{kind}" data-kind="{kind}" data-anchor="{anchor}" '
         f'role="tablist" aria-label="{label}" tabindex="0">\n'
         '    <span class="rail-end" aria-hidden="true"></span>\n'
         f'{body}\n'

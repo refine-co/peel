@@ -314,7 +314,17 @@ def sheet_html(pack, files, caps, size_kb):
     # file that knows how to draw a rail. Putting the rail beside the packs rail instead left
     # two wheels stacked at the top of the page with neither one's sheets under it.
     if pack["section"] == COMMUNITY_SECTION:
-        head += f'<p class="note">{COMMUNITY_NOTE}</p>\n{RAIL_START}\n{RAIL_END}\n'
+        # Heading, note and wheel inside one element with an id, exactly like #packs. peel.js
+        # scrolls to the element a rail's data-anchor names when a card is opened; without one
+        # of its own, the community rail borrowed "packs" and every community card scrolled
+        # the reader back to the top of somebody else's section.
+        head = (
+            '<section class="rail-section" id="community" aria-labelledby="community-h">\n'
+            f'<h2 id="community-h">{COMMUNITY_SECTION}</h2>\n'
+            f'<p class="note">{COMMUNITY_NOTE}</p>\n'
+            f'{RAIL_START}\n{RAIL_END}\n'
+            '</section>\n'
+        )
     link = peel_import_link(f"packs/{slug}.peel")
     return f"""{head}<section class="sheet" id="{slug}" style="--c1:{pack['c1']};--c2:{pack['c2']}">
   <div class="sheet-head">
