@@ -43,7 +43,7 @@ def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
-def cards():
+def cards(likes):
     """Every pack then every scene, in the order the sections appear on the page."""
     cat = {item["id"]: item for item in json.loads(CATALOGUE.read_text())["items"]}
     out = []
@@ -65,6 +65,7 @@ def cards():
             # and both the app and this page group by it.
             "community": bool(item.get("community")),
             "credit": item.get("credit"),
+            "likes": likes.get(pack["slug"], 0),
             "c1": pack["c1"], "c2": pack["c2"],
             "thumb": item["thumb"],
         })
@@ -84,6 +85,7 @@ def cards():
             "paid": bool(scene.get("paid")),
             "community": False,
             "credit": None,
+            "likes": 0,
             "c1": scene["c1"], "c2": scene["c2"],
             "thumb": item["thumb"],
         })
@@ -91,8 +93,43 @@ def cards():
     return out
 
 
+def likes_now():
+    """Like counts from the Worker, or nothing.
+
+    The build asks once and writes the numbers into the page; peel.js asks again when somebody
+    opens it, so a stale build shows stale numbers for a moment rather than none. A build with
+    no network still produces a page — the counts are decoration on a catalogue, and refusing
+    to build the site because a count was unavailable would be the wrong trade.
+    """
+    import urllib.error
+    import urllib.request
+    try:
+        request = urllib.request.Request(
+            LIKES_URL, data=b"{}", method="POST",
+            # Cloudflare answers Python's default agent with a 1010 and nothing else, so the
+            # build says who it is. Not a disguise: it is a real name for a real caller.
+            headers={
+                "Content-Type": "application/json",
+                "User-Agent": "peel-build (+https://peel.refineco.app)",
+            },
+        )
+        with urllib.request.urlopen(request, timeout=10) as answer:
+            return json.loads(answer.read()).get("likes", {})
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as e:
+        print(f"  likes unavailable ({e.__class__.__name__}), building without them")
+        return {}
+
+
 def card_html(card, first):
     pieces = f"{card['pieces']} {card['unit']}" + ("s" if card["pieces"] != 1 else "")
+
+    # Only a community card carries a count, and the slug rides along so peel.js can put a
+    # fresher number in without knowing how the card was built. Empty at nought: a pack nobody
+    # has got to yet should not wear a zero.
+    hearts = ""
+    if card["community"]:
+        shown = f"&#9829; {card['likes']}" if card["likes"] else ""
+        hearts = f'<span class="pcard-likes" data-likes-for="{card["slug"]}">{shown}</span>'
 
     marks = []
     if card["animated"]:
@@ -122,6 +159,7 @@ def card_html(card, first):
         f'<span class="pcard-body">'
         f'<span class="pcard-title">{esc(card["title"])}</span>'
         f'<span class="pcard-meta">{pieces}</span>'
+        f'{hearts}'
         f'<span class="pcard-marks">{"".join(marks)}</span>'
         f'</span>'
         f'<span class="sr">{spoken}</span>'
@@ -174,14 +212,23 @@ def fill(src, start, end, html):
                   lambda _: f"{start}\n{html}\n{end}", src, flags=re.S)
 
 
+LIKES_URL = "https://peel-submit.refineco.workers.dev/packs/likes"
+
 COMMUNITY_START = "<!-- community-rail:start -->"
 COMMUNITY_END = "<!-- community-rail:end -->"
 
 
 def build():
-    items = cards()
+    likes = likes_now()
+    items = cards(likes)
     packs = [c for c in items if not c["scene"] and not c["community"]]
-    community = [c for c in items if not c["scene"] and c["community"]]
+    # Most-liked first, title under that. The order is fixed when the site is built — peel.js
+    # refreshes the numbers but never moves the cards, because the rail measures itself from
+    # their order at startup and reshuffling behind it desynchronises the wheel.
+    community = sorted(
+        (c for c in items if not c["scene"] and c["community"]),
+        key=lambda c: (-c["likes"], c["title"]),
+    )
     scenes = [c for c in items if c["scene"]]
 
     # The packs section is a heading and its rail inside one element, so the "See the sheets"
@@ -206,7 +253,9 @@ def build():
     if community and COMMUNITY_START in src:
         src = fill(src, COMMUNITY_START, COMMUNITY_END, rail_html(community, "community"))
     PAGE.write_text(src)
-    print(f"deck: {len(packs)} sticker packs, {len(community)} community, {len(scenes)} scenes")
+    total_likes = sum(c["likes"] for c in community)
+    print(f"deck: {len(packs)} sticker packs, {len(community)} community "
+          f"({total_likes} likes), {len(scenes)} scenes")
 
 
 if __name__ == "__main__":

@@ -181,7 +181,13 @@ def cmd_publish(args) -> None:
     COMMUNITY.write_text(json.dumps(community, indent=2, sort_keys=True) + "\n")
     print(f"recorded {args.slug} as community, credited to {row['credit']}")
 
-    d1(f"UPDATE submissions SET state = 'published', reviewed_at = {now_ms()} WHERE id = '{sql_text(args.id)}'")
+    # The slug goes back onto the row. It is how the app names this pack, and therefore the
+    # only handle the likes endpoint has: votes are keyed by submission id, and the app has
+    # never seen one.
+    d1(
+        f"UPDATE submissions SET state = 'published', slug = '{sql_text(args.slug)}', "
+        f"reviewed_at = {now_ms()} WHERE id = '{sql_text(args.id)}'"
+    )
     r2_delete(f"{args.id}.peel")
     print(f"\n{row['pack_name']!r} by {row['credit']} is in the catalogue.")
     print("\nThe last step is one commit, in both repositories:")

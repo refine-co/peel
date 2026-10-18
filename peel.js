@@ -595,3 +595,39 @@
 
   document.querySelectorAll(".reveal").forEach(function (el) { seen.observe(el); });
 })();
+
+/* Like counts, fetched when somebody opens the page.
+ *
+ * The build writes the numbers in, so the page is right the moment it renders and right
+ * without JavaScript at all. This only replaces them with fresher ones. Nothing moves: the
+ * rails measure themselves from the card order at startup, so re-sorting here would leave the
+ * wheel pointing at the wrong card. Order follows the build, which is also when packs are
+ * published.
+ *
+ * Read-only by design. Liking needs an account, accounts live in the app, and giving the
+ * website a sign-in to support a heart would be a login page's worth of risk for a number.
+ */
+(function () {
+  var slots = document.querySelectorAll("[data-likes-for]");
+  if (!slots.length) return;
+  fetch("https://peel-submit.refineco.workers.dev/packs/likes", {
+    method: "POST",
+    // text/plain keeps this a simple request: no preflight, no OPTIONS route to maintain on a
+    // Worker that only answers POST. The endpoint ignores the body.
+    headers: { "Content-Type": "text/plain" },
+    body: "{}",
+  })
+    .then(function (answer) { return answer.ok ? answer.json() : null; })
+    .then(function (data) {
+      if (!data || !data.likes) return;
+      slots.forEach(function (slot) {
+        var n = data.likes[slot.dataset.likesFor];
+        // A pack with no likes shows nothing rather than a nought, the same as the build does.
+        slot.textContent = n ? "♥ " + n : "";
+      });
+    })
+    .catch(function () {
+      // Offline, blocked, or the Worker is down. The built-in numbers stay, which is the
+      // whole reason they are written into the page.
+    });
+})();

@@ -72,6 +72,9 @@ const GLOBAL_SUBMISSIONS_PER_DAY = 200;
  * account, so an accounts-per-day ceiling on its own would never fire — which is exactly the
  * mistake the codes limits made, and the reason this endpoint exists at all.
  */
+/** The one origin allowed to read like counts from a browser. */
+const SITE_ORIGIN = "https://peel.refineco.app";
+
 const SIGN_INS_PER_HOUR = 300;
 const SIGN_INS_PER_DAY = 2000;
 const ACCOUNTS_PER_DAY = 200;
@@ -84,6 +87,8 @@ export default {
       if (pathname === "/account/google") return await accountGoogle(request, env);
       if (pathname === "/account/delete") return await accountDelete(request, env);
       if (pathname === "/packs") return await packs(request, env);
+      if (pathname === "/packs/likes") return await packLikes(request, env);
+      if (pathname === "/packs/like") return await setPackLike(request, env);
     } catch (e) {
       // Never leak an internal message to a phone. The client turns a 5xx into "could not
       // reach Peel", which is the right thing for somebody to see.
@@ -577,6 +582,89 @@ async function json(request) {
   } catch {
     return null;
   }
+}
+
+/* ------------------------------------------------------------------- likes */
+
+/**
+ * How many people liked each published pack, and which of them this one did.
+ *
+ * POST like everything else here, because the Worker answers nothing else — see the method
+ * check in fetch(). A token is optional: without one the counts come back and `mine` is
+ * empty, which is what the website and a signed-out app both want.
+ *
+ * Counts are public. They are the only thing anybody learns: who liked what is never sent,
+ * and there is no endpoint that could be asked.
+ */
+async function packLikes(request, env) {
+  const session = await whoIs(request, env);
+  const rows = await env.DB.prepare(
+    "SELECT s.slug AS slug, COUNT(v.account_id) AS n FROM submissions s " +
+    "LEFT JOIN votes v ON v.submission_id = s.id " +
+    "WHERE s.state = 'published' AND s.slug IS NOT NULL GROUP BY s.slug"
+  ).all();
+  const likes = {};
+  for (const row of rows.results ?? []) likes[row.slug] = row.n ?? 0;
+
+  let mine = [];
+  if (session && !session.blocked_at) {
+    const own = await env.DB.prepare(
+      "SELECT s.slug AS slug FROM votes v JOIN submissions s ON s.id = v.submission_id " +
+      "WHERE v.account_id = ? AND s.slug IS NOT NULL"
+    ).bind(session.id).all();
+    mine = (own.results ?? []).map((row) => row.slug);
+  }
+  // The website reads this too, from a different origin, so it says who may. Only this
+  // endpoint: the ones that take a token stay same-origin, because nothing in a browser has
+  // any business carrying a Peel token and keeping the surface small costs nothing here.
+  return Response.json({ likes, mine }, { headers: { "Access-Control-Allow-Origin": SITE_ORIGIN } });
+}
+
+/**
+ * Like a pack, or take it back. `{ slug, on }`, and the answer is the pack's new count.
+ *
+ * Signing in is the whole gate. One like per account per pack is the primary key's job rather
+ * than a check followed by an insert: two taps racing each other then cost one row, not two,
+ * and there is no window between the look and the write for the second to fit through.
+ *
+ * A pack that is not published cannot be liked. That is not only tidiness — the slug is how
+ * the app names a pack, and without the state check a guessed slug would let somebody vote on
+ * a submission still in the queue.
+ */
+async function setPackLike(request, env) {
+  const session = await whoIs(request, env);
+  if (!session) return refuse(401, "Sign in to like a pack.");
+  if (session.blocked_at) return refuse(403, "This account cannot do that.");
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return refuse(400, "That did not look like a request.");
+  }
+  const slug = typeof body?.slug === "string" ? body.slug.trim() : "";
+  if (!slug || slug.length > 200) return refuse(400, "That did not look like a pack.");
+  const on = body?.on !== false;
+
+  const pack = await env.DB.prepare(
+    "SELECT id FROM submissions WHERE slug = ? AND state = 'published'"
+  ).bind(slug).first();
+  if (!pack) return refuse(404, "No such pack.");
+
+  if (on) {
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO votes (submission_id, account_id, created_at) VALUES (?, ?, ?)"
+    ).bind(pack.id, session.id, Date.now()).run();
+  } else {
+    await env.DB.prepare(
+      "DELETE FROM votes WHERE submission_id = ? AND account_id = ?"
+    ).bind(pack.id, session.id).run();
+  }
+
+  const count = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM votes WHERE submission_id = ?"
+  ).bind(pack.id).first();
+  return Response.json({ slug, likes: count?.n ?? 0, mine: on });
 }
 
 function refuse(status, error) {

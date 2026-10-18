@@ -954,3 +954,8 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
   .rail { scroll-behavior: auto; }
   .pcard { transition-duration: 1ms; }
 }
+
+/* The like count on a community card. Same weight as the piece count beside it: a heart is a
+   fact about the pack, not a badge competing with its name. */
+.pcard-likes { display: block; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.pcard-likes:empty { display: none; }
