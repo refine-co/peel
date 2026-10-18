@@ -48,6 +48,11 @@ SCENES_DIR = SITE / "scenes"
 ASSETS = pathlib.Path.home() / "Projects/android-peel/app/src/main/assets"
 THUMBS = ASSETS / "catalogue"
 PREVIEWS = ASSETS / "previews"
+# The same tiles, published beside the pack so the app can show a sheet for something that did
+# not exist when it was built. Without this every community pack is picture-less for everyone
+# until the next release bundles it — which for a section fed by submissions is always.
+SITE_PREVIEWS = SITE / "packs" / "img"
+PREVIEW_BASE = "https://peel.refineco.app/packs/img"
 
 BASE = "https://peel.refineco.app"
 
@@ -204,6 +209,13 @@ def main() -> None:
         with zipfile.ZipFile(p) as z:
             stickers = [s["file"] for s in json.loads(z.read("manifest.json")).get("stickers", [])]
         preview_bytes += previews_of(p, stickers, PREVIEWS / entry["id"])
+        # Published as well as bundled. Named from the archive, like the bundled ones, so the
+        # two sets cannot drift apart.
+        site_dir = SITE_PREVIEWS / entry["id"] / "previews"
+        preview_bytes += previews_of(p, stickers, site_dir)
+        entry["previews"] = [
+            f"{PREVIEW_BASE}/{entry['id']}/previews/{f.name}" for f in sorted(site_dir.glob("*.webp"))
+        ]
         items.append(entry)
 
     for p in sorted(SCENES_DIR.glob("*.chill")):
