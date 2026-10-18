@@ -61,6 +61,10 @@ def cards():
             "animated": item["animated"],
             "scene": False,
             "paid": bool(pack.get("paid")),
+            # Set by peel_review.py when a submission is published; the catalogue carries it
+            # and both the app and this page group by it.
+            "community": bool(item.get("community")),
+            "credit": item.get("credit"),
             "c1": pack["c1"], "c2": pack["c2"],
             "thumb": item["thumb"],
         })
@@ -78,6 +82,8 @@ def cards():
             "animated": item["animated"],
             "scene": True,
             "paid": bool(scene.get("paid")),
+            "community": False,
+            "credit": None,
             "c1": scene["c1"], "c2": scene["c2"],
             "thumb": item["thumb"],
         })
@@ -126,16 +132,20 @@ def card_html(card, first):
 def rail_html(items, kind):
     """One wheel: a lead line, its own arrows, and one card per item of [kind].
 
-    [kind] is "packs" or "scenes". The rail carries it in `data-kind` and carries the id of the
+    [kind] is "packs", "community" or "scenes". The rail carries it in `data-kind` and the id of the
     thing the page should scroll to in `data-anchor`, so peel.js can run the same code for both
     without knowing which is which. Each rail owns its own arrows, inside its own nav, because
     peel.js finds them from the rail and not from the page.
     """
     body = "\n".join(card_html(c, i == 0) for i, c in enumerate(items))
     scenes = kind == "scenes"
-    noun, label = ("scene", "Scenes") if scenes else ("pack", "Sticker packs")
+    noun, label = {
+        "scenes": ("scene", "Scenes"),
+        "community": ("pack", "Packs from the community"),
+    }.get(kind, ("pack", "Sticker packs"))
     count = len(items)
-    lead = (f'  <p class="rail-lead">{count} {"scene" if scenes else "sticker pack"}{"" if count == 1 else "s"}. '
+    thing = "scene" if scenes else ("pack from the community" if kind == "community" else "sticker pack")
+    lead = (f'  <p class="rail-lead">{count} {thing}{"" if count == 1 else "s"}. '
             f'<span>Swipe to see {"them all" if count != 1 else "it"}.</span></p>')
     return (
         f'<nav class="rail-wrap" aria-label="{label}">\n'
@@ -163,7 +173,8 @@ def fill(src, start, end, html):
 
 def build():
     items = cards()
-    packs = [c for c in items if not c["scene"]]
+    packs = [c for c in items if not c["scene"] and not c["community"]]
+    community = [c for c in items if not c["scene"] and c["community"]]
     scenes = [c for c in items if c["scene"]]
 
     # The packs section is a heading and its rail inside one element, so the "See the sheets"
@@ -175,12 +186,35 @@ def build():
         f'{rail_html(packs, "packs")}\n'
         '</section>'
     )
+    # Packs people sent in, in a wheel of their own directly under Peel's. Written into the
+    # same region as the packs rail rather than behind new markers in the page: one fewer
+    # thing to keep in step, and the section simply is not there on a site with no
+    # submissions published yet.
+    # Always written, empty or not. The page used to carry a hand-written "Nothing here yet"
+    # block at the bottom, which went on saying it after the first pack was published — the
+    # same way the welcome card went on saying "No account". Generating both states from the
+    # one place is what stops that happening again.
+    packs_html += (
+        '\n<section class="rail-section" id="community" aria-labelledby="community-h">\n'
+        '<h2 id="community-h">From the community</h2>\n'
+        '<p class="note">Packs people made in Peel and sent in. Each one is credited to '
+        'whoever made it.</p>\n'
+    )
+    if community:
+        packs_html += f'{rail_html(community, "community")}\n</section>'
+    else:
+        packs_html += (
+            '<div class="empty">\n'
+            '  Nothing here yet. If you have made a pack in Peel you are happy to share,\n'
+            '  <a href="submit.html">send it in</a> and it goes up with your name on it.\n'
+            '</div>\n</section>'
+        )
 
     src = PAGE.read_text()
     src = fill(src, START, END, packs_html)
     src = fill(src, SCENE_START, SCENE_END, rail_html(scenes, "scenes"))
     PAGE.write_text(src)
-    print(f"deck: {len(packs)} sticker packs, {len(scenes)} scenes")
+    print(f"deck: {len(packs)} sticker packs, {len(community)} community, {len(scenes)} scenes")
 
 
 if __name__ == "__main__":
