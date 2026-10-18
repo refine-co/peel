@@ -216,6 +216,10 @@ def shades(slug, files):
     return hex_at(0.22, 0.42), hex_at(0.58, 0.72)
 
 
+_community_file = SITE / "community.json"
+COMMUNITY = json.loads(_community_file.read_text()) if _community_file.exists() else {}
+
+
 def sent_in():
     """Every pack in site/packs/ that is not one of ours, described well enough to render.
 
@@ -237,20 +241,29 @@ def sent_in():
             )
         kind = "animated stickers" if manifest.get("animated") else "stickers"
         title = manifest.get("name") or path.stem
+        sent = COMMUNITY.get(path.stem)
         # The credit, when it says something the title has not. A pack of ours carries its own
-        # name here, and "Oyen Kampung · by Oyen Kampung" helps nobody. Deliberately not worded
-        # as "sent in by": this function cannot tell a pack somebody submitted from one of ours
-        # published the same way, and claiming the wrong one on a public page is worse than
-        # saying less. Give a sent-in pack its own heading by hand, once there is one.
-        credit = (manifest.get("publisher") or "").strip()
-        byline = f" · by {html.escape(credit)}" if credit and credit != title else ""
+        # name here, and "Oyen Kampung · by Oyen Kampung" helps nobody.
+        #
+        # "Sent in by" is only said when community.json says so. The old note here was right
+        # that the archive alone cannot tell a submission from one of ours published the same
+        # way — so the wording now follows the file that knows, and a pack missing from it
+        # still gets the quieter "by".
+        credit = (sent or {}).get("credit") or (manifest.get("publisher") or "").strip()
+        if credit and credit != title:
+            byline = f" · {'sent in by' if sent else 'by'} {html.escape(credit)}"
+        else:
+            byline = ""
         out.append({
             "slug": path.stem,
             "title": title,
             "spec": None,
             "sub": f"{len(files)} {kind}{byline}",
             "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
-            "section": None,
+            # The first one carries the heading, and the rest fall under it — the same way
+            # "Festive" and "From the makers" work above. Sorted by slug, so which pack is
+            # first does not wander between builds.
+            "section": "From the community" if sent and not any(p.get("section") == "From the community" for p in out) else None,
             "files": files,
         })
     return out

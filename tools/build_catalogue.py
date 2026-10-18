@@ -35,6 +35,12 @@ from PIL import Image
 
 SITE = pathlib.Path(__file__).resolve().parent.parent
 PACKS_DIR = SITE / "packs"
+
+# Packs that arrived as submissions: {slug: {"credit": str, "at": ms}}. Written by
+# peel_review.py at publish time. Absent file means nothing has been published from the
+# queue yet, which is the state every install started in.
+_community_file = SITE / "community.json"
+COMMUNITY = json.loads(_community_file.read_text()) if _community_file.exists() else {}
 SCENES_DIR = SITE / "scenes"
 
 # The Android project, which is a separate repo. Written into rather than read from, because the
@@ -225,6 +231,15 @@ def main() -> None:
         item["needs"] = NEEDS_BY_ID.get(entry["id"], NEEDS[entry["kind"]])
         if entry["id"] in PAID_IDS:
             item["paid"] = True
+        # A pack somebody sent in, and the name to credit it to. The app puts these in their
+        # own "From the community" section; a pack of ours carries neither field. The source
+        # is community.json, written by peel_review.py when a submission is published, never
+        # the pack's own publisher field — that is typed by the submitter.
+        sent_in = COMMUNITY.get(entry["id"])
+        if sent_in:
+            item["community"] = True
+            if sent_in.get("credit"):
+                item["credit"] = sent_in["credit"]
         item["thumb"] = inline_thumb(src, inner, alpha=entry["kind"] == "pack")
         overlay.append(item)
 

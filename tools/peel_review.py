@@ -44,6 +44,9 @@ import zipfile
 HERE = pathlib.Path(__file__).resolve().parent
 SITE = HERE.parent
 PACKS = SITE / "packs"
+# Which published packs arrived as submissions, and who to credit. Read by build_catalogue.py
+# and build_sheets.py; written only here.
+COMMUNITY = SITE / "community.json"
 WORKER = SITE.parent / "submit-worker"
 DB = "peel-submit"
 BUCKET = "peel-submissions"
@@ -169,11 +172,20 @@ def cmd_publish(args) -> None:
             sys.exit(f"{script} failed, nothing published:\n{build.stderr.strip()}")
         print(build.stdout.strip())
 
+    # Who sent it, written down rather than guessed. The pack's own `publisher` field is typed
+    # by the person submitting, so a pack claiming to be Peel's own would otherwise become
+    # Peel's own by saying so. This file is the only thing that makes a pack community, and it
+    # is written here, where we know it arrived as a submission.
+    community = json.loads(COMMUNITY.read_text()) if COMMUNITY.exists() else {}
+    community[args.slug] = {"credit": row["credit"], "at": now_ms()}
+    COMMUNITY.write_text(json.dumps(community, indent=2, sort_keys=True) + "\n")
+    print(f"recorded {args.slug} as community, credited to {row['credit']}")
+
     d1(f"UPDATE submissions SET state = 'published', reviewed_at = {now_ms()} WHERE id = '{sql_text(args.id)}'")
     r2_delete(f"{args.id}.peel")
     print(f"\n{row['pack_name']!r} by {row['credit']} is in the catalogue.")
     print("\nThe last step is one commit, in both repositories:")
-    print(f"  cd {SITE}  &&  git add -A packs catalogue.json packs.html  &&  git commit && git push")
+    print(f"  cd {SITE}  &&  git add -A packs catalogue.json packs.html community.json  &&  git commit && git push")
     print("  cd ~/Projects/android-peel  &&  git add -A app/src/main/assets  &&  git commit && git push")
     print("\nThe app picks it up the next time somebody opens More fun or pulls it down.")
 
