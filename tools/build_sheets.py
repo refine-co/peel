@@ -216,6 +216,15 @@ def shades(slug, files):
     return hex_at(0.22, 0.42), hex_at(0.58, 0.72)
 
 
+# The heading the community sheets sit under, and the place build_deck.py puts their rail.
+# Spelled once: build_deck.py fills the markers this file writes, and a mismatch would leave
+# the rail nowhere.
+COMMUNITY_SECTION = "From the community"
+COMMUNITY_NOTE = ("Packs people made in Peel and sent in. Each one is credited to whoever "
+                  "made it.")
+RAIL_START = "<!-- community-rail:start -->"
+RAIL_END = "<!-- community-rail:end -->"
+
 _community_file = SITE / "community.json"
 COMMUNITY = json.loads(_community_file.read_text()) if _community_file.exists() else {}
 
@@ -263,7 +272,7 @@ def sent_in():
             # The first one carries the heading, and the rest fall under it — the same way
             # "Festive" and "From the makers" work above. Sorted by slug, so which pack is
             # first does not wander between builds.
-            "section": "From the community" if sent and not any(p.get("section") == "From the community" for p in out) else None,
+            "section": COMMUNITY_SECTION if sent and not any(p.get("section") == COMMUNITY_SECTION for p in out) else None,
             "files": files,
         })
     return out
@@ -300,6 +309,12 @@ def sheet_html(pack, files, caps, size_kb):
         sticker(slug, f, c, a, e, i) for i, (f, (c, a, e)) in enumerate(zip(files, caps))
     )
     head = f'<h2 id="{slug}-h">{pack["section"]}</h2>\n' if pack["section"] else ""
+    # The community heading carries its wheel, the way the packs and scenes headings carry
+    # theirs. Written as an empty region here and filled by build_deck.py, which is the only
+    # file that knows how to draw a rail. Putting the rail beside the packs rail instead left
+    # two wheels stacked at the top of the page with neither one's sheets under it.
+    if pack["section"] == COMMUNITY_SECTION:
+        head += f'<p class="note">{COMMUNITY_NOTE}</p>\n{RAIL_START}\n{RAIL_END}\n'
     link = peel_import_link(f"packs/{slug}.peel")
     return f"""{head}<section class="sheet" id="{slug}" style="--c1:{pack['c1']};--c2:{pack['c2']}">
   <div class="sheet-head">
@@ -409,6 +424,18 @@ def main():
 
     page = SITE / "packs.html"
     src = page.read_text()
+    # No submissions published yet: the section is still worth having, as the invitation it
+    # used to be by hand at the bottom of the page. Generated from here so it disappears on
+    # its own the day the first pack goes up, which the hand-written one did not.
+    if not any(p.get("section") == COMMUNITY_SECTION for p in PACKS):
+        sections.append(
+            f'<h2 id="community-h">{COMMUNITY_SECTION}</h2>\n'
+            f'<p class="note">{COMMUNITY_NOTE}</p>\n'
+            '<div class="empty">\n'
+            '  Nothing here yet. If you have made a pack in Peel you are happy to share,\n'
+            '  <a href="submit.html">send it in</a> and it goes up with your name on it.\n'
+            '</div>'
+        )
     body = "\n\n".join(sections)
     src = re.sub(
         r"<!-- sheets:start -->.*?<!-- sheets:end -->",

@@ -171,6 +171,10 @@ def fill(src, start, end, html):
                   lambda _: f"{start}\n{html}\n{end}", src, flags=re.S)
 
 
+COMMUNITY_START = "<!-- community-rail:start -->"
+COMMUNITY_END = "<!-- community-rail:end -->"
+
+
 def build():
     items = cards()
     packs = [c for c in items if not c["scene"] and not c["community"]]
@@ -190,29 +194,14 @@ def build():
     # same region as the packs rail rather than behind new markers in the page: one fewer
     # thing to keep in step, and the section simply is not there on a site with no
     # submissions published yet.
-    # Always written, empty or not. The page used to carry a hand-written "Nothing here yet"
-    # block at the bottom, which went on saying it after the first pack was published — the
-    # same way the welcome card went on saying "No account". Generating both states from the
-    # one place is what stops that happening again.
-    packs_html += (
-        '\n<section class="rail-section" id="community" aria-labelledby="community-h">\n'
-        '<h2 id="community-h">From the community</h2>\n'
-        '<p class="note">Packs people made in Peel and sent in. Each one is credited to '
-        'whoever made it.</p>\n'
-    )
-    if community:
-        packs_html += f'{rail_html(community, "community")}\n</section>'
-    else:
-        packs_html += (
-            '<div class="empty">\n'
-            '  Nothing here yet. If you have made a pack in Peel you are happy to share,\n'
-            '  <a href="submit.html">send it in</a> and it goes up with your name on it.\n'
-            '</div>\n</section>'
-        )
-
     src = PAGE.read_text()
     src = fill(src, START, END, packs_html)
     src = fill(src, SCENE_START, SCENE_END, rail_html(scenes, "scenes"))
+    # The community rail goes where build_sheets.py left room for it: under that section's
+    # own heading, directly above the sheets it turns through. The markers are absent on a
+    # site with nothing published yet, and fill() then leaves the page alone.
+    if community and COMMUNITY_START in src:
+        src = fill(src, COMMUNITY_START, COMMUNITY_END, rail_html(community, "community"))
     PAGE.write_text(src)
     print(f"deck: {len(packs)} sticker packs, {len(community)} community, {len(scenes)} scenes")
 
