@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your name on a Halloween sticker pack — Peel</title>
+<meta name="description" content="Type a name and get four animated Halloween stickers with it on, ready for WhatsApp. Built on your phone, nothing uploaded.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Your name on a Halloween sticker pack — Peel">
+<meta property="og:description" content="Type a name, get four animated WhatsApp stickers with it on. Nothing leaves your phone.">
+<meta property="og:url" content="https://peel.refineco.app/name-it/">
+<link rel="stylesheet" href="../style.css">
+<style>
+.nameit form{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px}
+.nameit input[type=text]{flex:1 1 220px;min-width:0;font:inherit;font-size:1.1rem;padding:13px 16px;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--fg)}
+.nameit input[type=text]:focus{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);border-color:var(--accent)}
+.nameit button.btn{border:0;cursor:pointer;font:inherit}
+.nameit button.btn[disabled]{opacity:.55;cursor:default}
+#status{margin:10px 0 16px;color:var(--muted);min-height:1.6em}
+.nameit .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:14px 0 22px}
+.nameit figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:10px;text-align:center}
+.nameit figure img{width:100%;height:auto;display:block}
+.nameit figcaption{font-size:.82rem;color:var(--muted)}
+.nameit ol.steps{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px 22px 14px 40px;margin:18px 0}
+.nameit ol.steps li{margin:7px 0}
+.nameit .small{font-size:.85rem;color:var(--muted)}
+.nameit .actions{display:flex;gap:10px;flex-wrap:wrap}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="row">
+    <a class="brand" href="../index.html"><span class="dot"></span>Peel</a>
+    <nav>
+      <a href="../index.html">The app</a>
+      <a href="../packs.html">Sticker packs</a>
+      <a href="../how-to-install.html">How to install</a>
+      <a href="../submit.html">Share yours</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap nameit">
+  <p class="eyebrow">Free, for Halloween</p>
+  <h1>Put your name on a<br><span class="wave">Halloween sticker pack.</span></h1>
+  <p class="lede">Type a name. Four animated stickers are made with it, right on your phone &mdash; nothing is uploaded, and there is no account.</p>
+
+  <form id="f" onsubmit="return false">
+    <input id="name" type="text" maxlength="14" value="" placeholder="A name, like Mum or Aina" autocomplete="off" enterkeyhint="go" aria-label="Name to put on the stickers">
+    <button class="btn" id="go" type="submit">Make my pack</button>
+  </form>
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <div id="out" hidden>
+    <div class="grid" id="grid"></div>
+    <div class="actions">
+      <a class="btn" id="dl" download>Download the pack</a>
+      <a class="btn ghost" id="open" href="#">Open in Peel</a>
+    </div>
+    <ol class="steps">
+      <li><strong>Download the pack</strong> with the first button.</li>
+      <li>Tap <strong>Open in Peel</strong>, then choose the pack you just downloaded. No Peel yet? That button takes you to it on Google Play.</li>
+      <li>Tap through to add it to WhatsApp.</li>
+    </ol>
+  </div>
+  <p class="small" id="support"></p>
+  <p class="small">The art is the Moth from Peel&rsquo;s free Moth Lights pack. This page needs Chrome on Android.</p>
+
+  <footer>
+  <a href="../index.html">Peel</a> · <a href="../privacy.html">Privacy policy</a> · <a href="../terms.html">Terms of use</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a>
+  </footer>
+</main>
+
+<script>
+'use strict';
+// ---- configuration: three stand-in stickers, caption templates and tags ----
+const STICKERS = [
+  {base: 'bases/base1.webp', text: n => 'Happy Halloween, ' + n, emojis: ['\u{1F383}', '\u{1F47B}'], what: 'a grey moth holding a glowing jack-o-lantern'},
+  {base: 'bases/base2.webp', text: n => 'You light me up, ' + n, emojis: ['\u{1F56F}\uFE0F', '\u{1F497}'], what: 'a grey moth holding a glowing heart lantern'},
+  {base: 'bases/base3.webp', text: n => 'Stay cosy, ' + n, emojis: ['\u2615', '\u{1F319}'], what: 'a grey moth wrapped in a blanket holding a hot drink'},
+  {base: 'bases/base4.webp', text: n => 'Sweet dreams, ' + n, emojis: ['\u{1F319}', '\u{1F4A4}'], what: 'a grey moth asleep on a crescent moon'},
+];
+const SIZE = 512, MARGIN = 18, BAND = 112, FRAME_MS = 83;
+const BUDGET = 480 * 1024;                       // the app's limit is 500 KB; keep headroom
+const QUALITIES = [60, 52, 45, 40, 35, 30, 25, 20];   // libwebp quality, highest that fits
+const MIME = 'application/vnd.refineco.peel';
+
+// ---- caption: same layout rules as Peel's pack builder (dark letters, white die-cut outline) ----
+function drawCaption(ctx, text) {
+  if (!text) return;
+  const maxW = SIZE - 2 * MARGIN - 8;
+  let size = Math.floor(BAND * 0.62);
+  ctx.font = size + 'px Fredoka, system-ui, sans-serif';
+  while (size > 8 && ctx.measureText(text).width > maxW) {
+    size -= 1;
+    ctx.font = size + 'px Fredoka, system-ui, sans-serif';
+  }
+  const stroke = Math.round(0.36 * size);           // line width; the builder's outline grows 0.18 x size per side
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  const x = SIZE / 2, y = SIZE - MARGIN - BAND / 2;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.35)';
+  ctx.shadowBlur = 5;
+  ctx.lineWidth = stroke;
+  ctx.strokeStyle = '#fff';
+  ctx.strokeText(text, x, y);
+  ctx.restore();
+  ctx.lineWidth = stroke;
+  ctx.strokeStyle = '#fff';
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = '#241c13';
+  ctx.fillText(text, x, y);
+}
+
+// ---- decode an animated WebP into frames (ImageDecoder, Chrome and Android Chrome) ----
+async function decodeFrames(url) {
+  const buf = await (await fetch(url)).arrayBuffer();
+  const dec = new ImageDecoder({data: buf, type: 'image/webp'});
+  await dec.tracks.ready;
+  const count = dec.tracks.selectedTrack.frameCount;
+  const frames = [];
+  for (let i = 0; i < count; i++) {
+    const {image} = await dec.decode({frameIndex: i});
+    const bmp = await createImageBitmap(image);
+    bmp.dur = Math.round((image.duration || FRAME_MS * 1000) / 1000);   // merged frames keep their longer time
+    frames.push(bmp);
+    image.close();
+  }
+  dec.close();
+  return frames;
+}
+
+// ---- small byte helpers ----
+const u32 = n => new Uint8Array([n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255]);
+function cat(parts) {
+  const out = new Uint8Array(parts.reduce((a, p) => a + p.length, 0));
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+
+// ---- store-only ZIP writer ----
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = d => { let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = CRC[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+const u16 = n => new Uint8Array([n & 255, (n >> 8) & 255]);
+function zip(files) {                               // files: [{name, data: Uint8Array}]
+  const local = [], central = [];
+  let offset = 0;
+  const dosTime = 0, dosDate = (46 << 9) | (1 << 5) | 1;   // 2026-01-01, a fixed date
+  for (const f of files) {
+    const name = new TextEncoder().encode(f.name), crc = crc32(f.data);
+    const head = cat([u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate), u32(crc), u32(f.data.length), u32(f.data.length), u16(name.length), u16(0), name]);
+    local.push(head, f.data);
+    central.push(cat([u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate), u32(crc), u32(f.data.length), u32(f.data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), name]));
+    offset += head.length + f.data.length;
+  }
+  const cd = cat(central);
+  const end = cat([u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cd.length), u32(offset), u16(0)]);
+  return cat([...local, cd, end]);
+}
+
+// ---- building one sticker, then the pack ----
+let webp;                                           // libwebp compiled to WebAssembly (animated encoder)
+const blobOf = (canvas, type, q) => new Promise(res => canvas.toBlob(res, type, q));
+async function buildSticker(frames, text) {
+  webp = webp || await import('./wasm/index.js');
+  const canvas = new OffscreenCanvasLike(SIZE, SIZE), ctx = canvas.getContext('2d', {willReadFrequently: true});
+  const pixels = [], durs = [];
+  for (const fr of frames) {
+    durs.push(fr.dur || FRAME_MS);
+    ctx.clearRect(0, 0, SIZE, SIZE);
+    ctx.drawImage(fr, 0, 0, SIZE, SIZE);
+    drawCaption(ctx, text);
+    pixels.push(new Uint8Array(ctx.getImageData(0, 0, SIZE, SIZE).data.buffer.slice(0)));
+  }
+  // Identical neighbouring frames are merged here with their time added up; the encoder would drop
+  // them without keeping their duration, which made the loop shorter.
+  const timed = [];
+  pixels.forEach((p, k) => {
+    const last = timed[timed.length - 1];
+    if (last && last.data.every((v, i) => v === p[i])) last.duration += durs[k];
+    else timed.push({data: p, duration: durs[k]});
+  });
+  const tried = [];
+  for (const q of QUALITIES) {
+    const data = await webp.encodeAnimation(SIZE, SIZE, true,
+      timed.map(f => ({data: f.data, duration: f.duration, config: {lossless: 0, quality: q}})));
+    if (!data) throw new Error('The encoder failed.');
+    tried.push({q, bytes: data.length});
+    if (data.length <= BUDGET) return {data, q, tried};
+  }
+  throw new Error('Could not fit ' + text + ' under 500 KB');
+}
+function OffscreenCanvasLike(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
+
+async function buildPack(rawName, onProgress) {
+  const name = rawName.replace(/[\u0000-\u001f"\\]/g, '').trim().slice(0, 14);
+  if (!name) throw new Error('Type a name first.');
+  const stickers = [];
+  const files = [];
+  for (let i = 0; i < STICKERS.length; i++) {
+    onProgress && onProgress('Making sticker ' + (i + 1) + ' of ' + STICKERS.length + '… this takes a little while on a phone.');
+    const s = STICKERS[i];
+    const frames = await decodeFrames(s.base);
+    const text = s.text(name);
+    const res = await buildSticker(frames, text);
+    files.push({name: 'stickers/' + String(i + 1).padStart(2, '0') + '.webp', data: res.data});
+    stickers.push({text, emojis: s.emojis, what: s.what, bytes: res.data.length, q: res.q, data: res.data, frames: frames.length});
+    if (i === 0) {
+      const tray = new OffscreenCanvasLike(96, 96), tctx = tray.getContext('2d');
+      tctx.drawImage(frames[0], 0, 0, 96, 96);
+      files.unshift({name: 'tray.png', data: new Uint8Array(await (await blobOf(tray, 'image/png')).arrayBuffer())});
+    }
+    frames.forEach(f => f.close());
+  }
+  const manifest = {
+    format: 'peel-pack', version: 1,
+    name: 'Halloween for ' + name, publisher: 'Peel', animated: true,
+    stickers: stickers.map((s, i) => ({
+      file: 'stickers/' + String(i + 1).padStart(2, '0') + '.webp',
+      emojis: s.emojis,
+      accessibilityText: 'An animated sticker of ' + s.what + ', with text that reads ' + s.text + '.',
+    })),
+  };
+  files.unshift({name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))});
+  const archive = zip(files);
+  return {name, stickers, archive};
+}
+
+// ---- page wiring ----
+const $ = id => document.getElementById(id);
+async function run() {
+  const btn = $('go');
+  btn.disabled = true; $('out').hidden = true;
+  const t0 = performance.now();
+  try {
+    const pack = await buildPack($('name').value, msg => { $('status').textContent = msg; });
+    window.__lastPeel = pack.archive;
+    window.__lastReport = pack.stickers.map(s => ({text: s.text, kb: Math.round(s.bytes / 1024), q: s.q, frames: s.frames}));
+    const grid = $('grid'); grid.innerHTML = '';
+    for (const s of pack.stickers) {
+      const fig = document.createElement('figure');
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(new Blob([s.data], {type: 'image/webp'}));
+      img.alt = s.text;
+      const cap = document.createElement('figcaption');
+      cap.textContent = Math.round(s.bytes / 1024) + ' KB';
+      fig.append(img, cap); grid.append(fig);
+    }
+    const blob = new Blob([pack.archive], {type: MIME});
+    const a = $('dl');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'halloween-for-' + pack.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.peel';
+    $('out').hidden = false;
+    $('status').textContent = 'Done in ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s. ' + Math.round(pack.archive.length / 1024) + ' KB.';
+  } catch (e) {
+    $('status').textContent = e.message || String(e);
+  } finally { btn.disabled = false; }
+}
+$('go').addEventListener('click', run);
+$('name').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+if (!('ImageDecoder' in window)) { $('support').textContent = 'This browser can\u2019t build the pack yet. Open this page in Chrome on an Android phone.'; $('go').disabled = true; }
+new FontFace('Fredoka', 'url(fredoka_bold.ttf)').load().then(f => document.fonts.add(f));
+// "Open in Peel" opens the pack picker; if Peel is not installed it falls back to the Play listing, tagged so installs from this page can be counted.
+(function () {
+  const play = 'https://play.google.com/store/apps/details?id=my.refineco.peel&referrer=' + encodeURIComponent('utm_source=name-it&utm_campaign=halloween');
+  $('open').href = 'intent://import#Intent;scheme=peel;package=my.refineco.peel;S.browser_fallback_url=' + encodeURIComponent(play) + ';end';
+})();
+</script>
+</body>
+</html>
