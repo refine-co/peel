@@ -67,14 +67,14 @@ NEEDS = {"pack": 1, "scene": 15}
 # has never heard of its fingerprint and would hand it over for nothing. Naming the release
 # that does know it means every older install greys the card out with "Update Peel to get
 # this" instead -- which is the wrong-in-the-harmless-direction failure.
-NEEDS_BY_ID: dict[str, int] = {"dead-honest": 23, "sir-crow": 23}
+NEEDS_BY_ID: dict[str, int] = {"dead-honest": 23, "sir-crow": 23, "just-lurking": 25}
 
 # Packs that are sold. Peel 2.4.1 (versionCode 25) reads `paid` from the fetched list, so a paid
 # pack published from now on needs only an entry here and `needs` of 25 in NEEDS_BY_ID: no new
 # release has to add its fingerprint. Builds before 2.4.1 ignore the flag, which is why the new
 # pack's `needs` must be 25 -- those builds then grey the card instead of importing it free.
 # Dead Honest and Sir Crow are also compiled into the app (FreeContent.PAID_PACKS) and stay so.
-PAID_IDS: set[str] = {"dead-honest", "sir-crow"}
+PAID_IDS: set[str] = {"dead-honest", "sir-crow", "just-lurking"}
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
 # be a five-fold upscale; WebP with alpha because pack trays are cut-outs and a white box
