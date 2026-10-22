@@ -10,6 +10,7 @@ Needs Google Chrome for the PNG render; pass --no-png to skip it.
 """
 
 import colorsys
+import datetime
 import html
 import json
 import pathlib
@@ -124,6 +125,8 @@ PACKS = [
         "title": "Low Light",
         "c1": "#3a2410", "c2": "#ffb13d",
         "sub": "12 animated stickers · a jack-o'-lantern lit from inside, whose candle is its mood: Fully charged, Running on empty, Lights out",
+        "story": "There is a candle inside him and some days it is barely there. He is not sad about it. He slumps, he flickers, he goes out altogether and sits in the dark with a wisp of smoke — and then something small works, and he is blazing again.",
+        "new_until": "2026-12-01",
         "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
         "section": None,
     },
@@ -132,6 +135,8 @@ PACKS = [
         "title": "Just Lurking",
         "c1": "#15151c", "c2": "#c6f24a",
         "sub": "12 animated stickers · a black cat who is never more than two glowing eyes in the dark: I'm watching, I saw that, No comment",
+        "story": "She has read every message. She has replied to none of them. All you ever see is two eyes in the dark, and they are definitely still open.",
+        "new_until": "2026-12-01",
         "after": UNLOCK_NOTE,
         "paid": True,
         "section": None,
@@ -320,6 +325,45 @@ def sticker(slug, base, cap, alt, emo, i, lazy=True):
     )
 
 
+# A pack published recently gets its own billing above the wheel, with a few words about who
+# the character is rather than what the pack contains. `new_until` is a date and not a flag,
+# so the block empties itself: a "new" that has to be cleared by hand is how a page ends up
+# announcing something that shipped a month ago.
+NEW_START = "<!-- new:start -->"
+NEW_END = "<!-- new:end -->"
+
+
+def just_landed(packs, today):
+    """The billing block for packs still inside their `new_until` date, newest first."""
+    cards = []
+    for pack in sorted((p for p in packs if p.get("story") and p.get("new_until", "") >= today),
+                       key=lambda p: p["new_until"], reverse=True):
+        slug = pack["slug"]
+        shots = sorted((SITE / "packs" / "img" / slug / "stickers").glob("*.webp"))[:4]
+        tiles = "".join(
+            f'<img src="packs/img/{slug}/stickers/{f.name}" alt="" width="120" height="120" loading="lazy">'
+            for f in shots)
+        kind = pack["sub"].split("\u00b7")[0].strip()
+        cards.append(
+            f'<section class="sheet" style="--c1:{pack["c1"]};--c2:{pack["c2"]}">\n'
+            f'  <div class="sheet-head">\n'
+            f'    <h3 class="sheet-title">{html.escape(pack["title"])}</h3>\n'
+            f'    <p class="sheet-sub">{kind}</p>\n'
+            f'  </div>\n'
+            f'  <div class="sheet-body">\n'
+            f'    <p class="scene-blurb" style="margin-bottom:.9rem">{html.escape(pack["story"])}</p>\n'
+            f'    <div class="sheet-grid">{tiles}</div>\n'
+            f'  </div>\n'
+            f'  <div class="sheet-foot">\n'
+            f'    <a class="btn" href="#{slug}">See all twelve</a>\n'
+            f'  </div>\n'
+            f'</section>')
+    if not cards:
+        return ""
+    return ('<section class="rail-section" id="just-landed" aria-labelledby="just-landed-h">\n'
+            '<h2 id="just-landed-h">Just landed</h2>\n' + "\n".join(cards) + '\n</section>')
+
+
 def sheet_html(pack, files, caps, size_kb):
     slug = pack["slug"]
     cells = "\n".join(
@@ -464,6 +508,12 @@ def main():
             '</div>'
         )
     body = "\n\n".join(sections)
+    today = datetime.date.today().isoformat()
+    src = re.sub(
+        re.escape(NEW_START) + r".*?" + re.escape(NEW_END),
+        NEW_START + "\n" + just_landed(PACKS, today) + "\n" + NEW_END,
+        src, flags=re.S,
+    )
     src = re.sub(
         r"<!-- sheets:start -->.*?<!-- sheets:end -->",
         "<!-- sheets:start -->\n" + body + "\n<!-- sheets:end -->",
