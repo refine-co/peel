@@ -76,6 +76,20 @@ NEEDS_BY_ID: dict[str, int] = {"dead-honest": 23, "sir-crow": 23, "just-lurking"
 # Dead Honest and Sir Crow are also compiled into the app (FreeContent.PAID_PACKS) and stay so.
 PAID_IDS: set[str] = {"dead-honest", "sir-crow", "just-lurking"}
 
+# A paid pack's file does not sit at packs/<id>.peel, where anybody can type it. It sits in a
+# directory nobody can guess, and no page on the site links to it -- the only place the path is
+# published is this catalogue, which is what the app reads. That is as far as a static host can
+# go: GitHub Pages serves a GET to the app and to a browser identically, so a real gate would
+# need a host that can check something, and the gate that does hold is in Peel, at import,
+# against the unlock on the phone. This only stops the file being one click or one guess away.
+# A token here is permanent: change one and every install with the old list 404s on that pack
+# until it refreshes.
+VAULT: dict[str, str] = {
+    "dead-honest": "k7qf3xd92m",
+    "sir-crow": "b4htz8rn51",
+    "just-lurking": "w9vmc26pdj",
+}
+
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
 # be a five-fold upscale; WebP with alpha because pack trays are cut-outs and a white box
 # behind a sticker is the failure this is meant to avoid.
@@ -116,7 +130,7 @@ def pack_entry(path: pathlib.Path) -> dict:
         "animated": bool(manifest.get("animated", False)),
         "bytes": path.stat().st_size,
         "size": human(path.stat().st_size),
-        "file": f"{BASE}/packs/{path.name}",
+        "file": f"{BASE}/{path.relative_to(SITE).as_posix()}",
         "thumb": f"catalogue/{path.stem}.png",
         # Packs carry a fingerprint for the same reason scenes do, now that a pack can be sold:
         # the grid has to be able to say the price before the download rather than after it.
@@ -203,7 +217,23 @@ def main() -> None:
     items = []
 
     preview_bytes = 0
-    for p in sorted(PACKS_DIR.glob("*.peel")):
+    # Free packs sit in packs/; a paid one sits in its VAULT directory under it. Sorted by id so
+    # the order is the one sorting packs/<name> gave before, so moving a pack cannot reorder the grid.
+    pack_files = sorted(
+        list(PACKS_DIR.glob("*.peel")) + list(PACKS_DIR.glob("*/*.peel")),
+        key=lambda f: f.name,
+    )
+    sources = {f.stem: f for f in pack_files}
+    # The one check that keeps a paid pack off the guessable path. Without it, rebuilding a paid
+    # pack straight into packs/ would quietly publish it at packs/<id>.peel again.
+    for pack_id, token in VAULT.items():
+        found = sources.get(pack_id)
+        if found is not None and found.parent.name != token:
+            raise SystemExit(
+                f"{pack_id} is a paid pack: move it to packs/{token}/ before publishing")
+    for pack_id in PAID_IDS - set(VAULT):
+        raise SystemExit(f"{pack_id} is sold but has no VAULT directory")
+    for p in pack_files:
         entry = pack_entry(p)
         thumb_of(p, "tray.png", THUMBS / f"{entry['id']}.png")
         with zipfile.ZipFile(p) as z:
@@ -235,7 +265,7 @@ def main() -> None:
     # The overlay. Same items, plus what the app cannot already have.
     overlay = []
     for entry in items:
-        src = (PACKS_DIR / f"{entry['id']}.peel" if entry["kind"] == "pack"
+        src = (sources[entry["id"]] if entry["kind"] == "pack"
                else SCENES_DIR / pathlib.Path(entry["file"]).name)
         inner = "tray.png" if entry["kind"] == "pack" else (
             json.loads(zipfile.ZipFile(src).read("scene.json")).get("thumbnail", "thumb.jpg"))

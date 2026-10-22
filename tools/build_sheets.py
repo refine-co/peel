@@ -37,6 +37,23 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 # The package is pinned to the release application id, so a debug build can never receive it,
 # and browser_fallback_url sends anyone without Peel to the listing.
 SITE_URL = "https://peel.refineco.app"
+PLAY_URL = "https://play.google.com/store/apps/details?id=my.refineco.peel"
+
+
+def pack_file(slug):
+    """Where a pack's archive actually is.
+
+    A free pack sits at packs/<slug>.peel. A paid one sits in the directory build_catalogue.py
+    keeps it in, so the file is not one guessed URL away from anybody on the web. Both are read
+    the same way here: this page is built from the archives, whatever their path.
+    """
+    direct = SITE / "packs" / f"{slug}.peel"
+    if direct.exists():
+        return direct
+    found = sorted((SITE / "packs").glob(f"*/{slug}.peel"))
+    if not found:
+        raise SystemExit(f"no archive for {slug} under packs/")
+    return found[0]
 
 
 def peel_import_link(path):
@@ -52,7 +69,8 @@ def peel_import_link(path):
 # What a paid pack's page says in place of the "download first" line. Same promise as a paid
 # scene (build_scenes.py): one purchase, once, and the file downloads either way.
 UNLOCK_NOTE = ("This one needs Peel unlocked \u2014 a single purchase, once, that opens every paid "
-               "pack and scene. The file downloads either way, and waits in Peel until it is.")
+               "pack and scene. Open Peel and tap More fun: the sheet downloads onto the phone "
+               "that owns the unlock, and is not handed out from this page.")
 
 PACKS = [
     {
@@ -176,7 +194,7 @@ def captions_of(pack):
     """
     if pack.get("spec"):
         return captions(SPECS / pack["spec"])
-    with zipfile.ZipFile(SITE / "packs" / f"{pack['slug']}.peel") as z:
+    with zipfile.ZipFile(pack_file(pack["slug"])) as z:
         return captions_from(json.loads(z.read("manifest.json")))
 
 
@@ -262,7 +280,10 @@ def sent_in():
     """
     known = {p["slug"] for p in PACKS}
     out = []
-    for path in sorted((SITE / "packs").glob("*.peel")):
+    for path in sorted(
+        list((SITE / "packs").glob("*.peel")) + list((SITE / "packs").glob("*/*.peel")),
+        key=lambda f: f.name,
+    ):
         if path.stem in known:
             continue
         with zipfile.ZipFile(path) as z:
@@ -304,7 +325,7 @@ def extract(slug):
     """Unpack the .peel into the site so the page serves the real stickers."""
     dest = SITE / "packs" / "img" / slug / "stickers"
     dest.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(SITE / "packs" / f"{slug}.peel") as z:
+    with zipfile.ZipFile(pack_file(slug)) as z:
         names = sorted(n for n in z.namelist() if n.startswith("stickers/"))
         for n in names:
             (dest / pathlib.Path(n).name).write_bytes(z.read(n))
@@ -386,7 +407,16 @@ def sheet_html(pack, files, caps, size_kb):
             f'{RAIL_START}\n{RAIL_END}\n'
             '</section>\n'
         )
-    link = peel_import_link(f"packs/{slug}.peel")
+    if pack.get("paid"):
+        # Neither a download nor an import link. Both are a public one-click fetch of a file
+        # somebody pays for, and no gate on this page can hold: the only check that means
+        # anything happens inside Peel, at import, against the unlock on that phone. So a
+        # paid sheet sends the reader to Peel and nowhere else.
+        foot = f'<a class="btn" href="{PLAY_URL}">Get it in Peel</a>'
+    else:
+        link = peel_import_link(f"packs/{slug}.peel")
+        foot = (f'<a class="btn" href="packs/{slug}.peel" download>Download the sheet · {size_kb}</a>\n'
+                f'    <a class="btn ghost" href="{link}">Open in Peel</a>')
     return f"""{head}<section class="sheet" id="{slug}" style="--c1:{pack['c1']};--c2:{pack['c2']}">
   <div class="sheet-head">
     <h3 class="sheet-title">{html.escape(pack['title'])}</h3>
@@ -398,8 +428,7 @@ def sheet_html(pack, files, caps, size_kb):
     </div>
   </div>
   <div class="sheet-foot">
-    <a class="btn" href="packs/{slug}.peel" download>Download the sheet · {size_kb}</a>
-    <a class="btn ghost" href="{link}">Open in Peel</a>
+    {foot}
     <p class="how">{pack['after']}</p>
   </div>
 </section>"""
@@ -475,7 +504,7 @@ def main():
         caps = captions_of(pack)
         assert len(files) == len(caps), f"{pack['slug']}: {len(files)} files, {len(caps)} captions"
 
-        size = (SITE / "packs" / f"{pack['slug']}.peel").stat().st_size
+        size = pack_file(pack["slug"]).stat().st_size
         size_kb = f"{size / 1024 / 1024:.1f} MB" if size > 1024 * 1024 else f"{size // 1024} KB"
         sections.append(sheet_html(pack, files, caps, size_kb))
 
