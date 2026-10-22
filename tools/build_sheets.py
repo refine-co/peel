@@ -120,6 +120,23 @@ PACKS = [
         "section": None,
     },
     {
+        "slug": "low-light",
+        "title": "Low Light",
+        "c1": "#3a2410", "c2": "#ffb13d",
+        "sub": "12 animated stickers · a jack-o'-lantern lit from inside, whose candle is its mood: Fully charged, Running on empty, Lights out",
+        "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
+        "slug": "just-lurking",
+        "title": "Just Lurking",
+        "c1": "#15151c", "c2": "#c6f24a",
+        "sub": "12 animated stickers · a black cat who is never more than two glowing eyes in the dark: I'm watching, I saw that, No comment",
+        "after": UNLOCK_NOTE,
+        "paid": True,
+        "section": None,
+    },
+    {
         "slug": "reactions",
         "title": "Reactions",
         "spec": "humans-captions.json",
