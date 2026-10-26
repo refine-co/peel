@@ -25,6 +25,8 @@ import zipfile
 from PIL import Image
 from urllib.parse import quote
 
+from build_sheets import in_peel_foot  # noqa: E402
+
 SITE = pathlib.Path(__file__).resolve().parent.parent
 SCENES_DIR = SITE / "scenes"
 
@@ -55,6 +57,15 @@ def peel_import_link(path):
     )
 
 SCENES = [
+    {
+        "slug": "deepavali-doorstep",
+        "c1": "#0f4c5c", "c2": "#ffb703",
+        "sub": "28 pieces \u00b7 a doorstep on the night of Deepavali, from the wall garlands to the lamps and the kolam",
+        "blurb": "The wall first \u2014 the garlands, the lanterns and the paintings \u2014 then the "
+                 "lamps and flowers on the steps, then the kolam on the ground, and the fireworks "
+                 "and the moon last. In Peel the lamps glow and a temple bell rings.",
+        "paid": True,
+    },
     {
         "slug": "village-night",
         "c1": "#2b2d6e", "c2": "#f0a868",
@@ -189,35 +200,12 @@ def scene_html(scene, manifest, size):
         f'    </div>\n'
     ) if puzzle else ""
 
-    note = scene.get("after", "Download first — <strong>Open in Peel</strong> then picks it "
-                              "up from your Downloads folder.")
-    if scene.get("paid"):
-        note = ("This one needs Peel unlocked — a single purchase, once, that opens every "
-                "paid scene and pack. The file downloads either way, and waits in Chill "
-                "until it is.")
-
     badge = (' <span class="chip paid">Needs the unlock</span>'
              if scene.get("paid") else "")
 
-    link = peel_import_link(f"scenes/{slug}.chill")
-    if DOWNLOADS_LIVE:
-        foot = (
-            f'    <a class="btn" href="scenes/{slug}.chill" download>'
-            f'Download the scene · {size_txt}</a>\n'
-            f'    <a class="btn ghost" href="{link}">Open in Peel</a>\n'
-            f'    <p class="how">{note}</p>'
-        )
-    else:
-        # The "after" line is deliberately dropped here. It describes what the downloaded file
-        # is for — Lantern Alley's reads "Also built into Peel. This file is for sharing it
-        # with someone who has not installed the app yet" — and printed under "needs a version
-        # of Peel that is not out yet" it contradicts itself twice over: the scene is not in
-        # the shipping app, and there is no file to share. It comes back with the downloads.
-        foot = (
-            f'    <span class="soon">Coming with the next update</span>\n'
-            f'    <p class="how">Scenes need a version of Peel that is not out yet. '
-            f'The file is {size_txt} when it lands.</p>'
-        )
+    # Where to find it in the app and what it costs, in place of the download buttons. Peel
+    # fetches the scene from Chill's More scenes itself; see build_sheets.in_peel_foot.
+    foot = in_peel_foot("scene", "Chill scenes", bool(scene.get("paid")))
 
     return f"""<section class="scene" id="{slug}" style="--c1:{scene['c1']};--c2:{scene['c2']}">
   <div class="sheet-head">
@@ -234,9 +222,7 @@ def scene_html(scene, manifest, size):
 {pieces}
     </div>
   </div>
-  <div class="sheet-foot">
 {foot}
-  </div>
 </section>"""
 
 

@@ -11,6 +11,7 @@ Needs Google Chrome for the PNG render; pass --no-png to skip it.
 
 import colorsys
 import html
+import io
 import json
 import pathlib
 import re
@@ -36,6 +37,27 @@ CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 # The package is pinned to the release application id, so a debug build can never receive it,
 # and browser_fallback_url sends anyone without Peel to the listing.
 SITE_URL = "https://peel.refineco.app"
+OTHER_SHELF = "Other packs"
+COMMUNITY_SHELF = "From the community"
+
+
+def shelf_of(slug):
+    """Where the app lists this pack, and whether it is sold, read from catalogue.json.
+
+    The website no longer hands out the files: Peel downloads them itself from More fun, so a
+    sheet says where to find its pack in the app instead. The catalogue is the file the app
+    reads, so the page cannot send anyone to a shelf the app does not have.
+    """
+    file = SITE / "catalogue.json"
+    data = json.loads(file.read_text()) if file.exists() else {}
+    names = {c["id"]: c.get("en", c["id"]) for c in data.get("categories", [])}
+    for item in data.get("items", []):
+        if item["id"] == slug:
+            key = item.get("category")
+            if COMMUNITY.get(slug):
+                return COMMUNITY_SHELF, bool(item.get("paid"))
+            return (names.get(key) if key else None) or OTHER_SHELF, bool(item.get("paid"))
+    return OTHER_SHELF, False
 
 
 def peel_import_link(path):
@@ -54,6 +76,56 @@ UNLOCK_NOTE = ("This one needs Peel unlocked \u2014 a single purchase, once, tha
                "pack and scene. The file downloads either way, and waits in Peel until it is.")
 
 PACKS = [
+    # The Deepavali shelf leads, hero first (see build_catalogue.SHELF_ORDER). Taken off the front
+    # again after the festival by moving these below the Halloween packs.
+    {
+        "slug": "divine-blessings",
+        "title": "Divine Blessings",
+        "spec": None,
+        "c1": "#4a1d6e", "c2": "#ffb347",
+        "sub": "12 animated stickers \u00b7 twelve deities, each in a glow of its own colour, with a blessing to send",
+        "section": "Festive",
+    },
+    {
+        "slug": "lakshmi",
+        "title": "Lakshmi",
+        "spec": None,
+        "c1": "#7a1f3d", "c2": "#ffc857",
+        "sub": "19 animated stickers \u00b7 Lakshmi on her lotus, with coins, elephants and lamps, for good wishes",
+        "section": None,
+    },
+    {
+        "slug": "happy-deepavali",
+        "title": "Happy Deepavali",
+        "spec": None,
+        "c1": "#8a3b12", "c2": "#ffd166",
+        "sub": "16 stickers \u00b7 greetings in English and Tamil: Happy Deepavali, Sending love, Welcome home",
+        "section": None,
+    },
+    {
+        "slug": "little-diya",
+        "title": "Little Diya",
+        "spec": None,
+        "c1": "#5a2a0c", "c2": "#ff9f1c",
+        "sub": "12 animated stickers \u00b7 a clay lamp whose flame is its mood: Happy Deepavali, Ring the bell, So shy",
+        "section": None,
+    },
+    {
+        "slug": "mayil",
+        "title": "Mayil",
+        "spec": None,
+        "c1": "#0b4f6c", "c2": "#2ec4b6",
+        "sub": "12 animated stickers \u00b7 a peacock whose tail opens and feather eyes light up: Welcome, Dance with me, Hooray!",
+        "section": None,
+    },
+    {
+        "slug": "kolam-lights",
+        "title": "Kolam Lights",
+        "spec": None,
+        "c1": "#1b1f4a", "c2": "#f7b32b",
+        "sub": "8 animated stickers \u00b7 kolam drawn in light, dot by dot: Light it up, Deepavali glow, Sparkle ring",
+        "section": None,
+    },
     {
         "slug": "halloween",
         "title": "Peel Halloween",
@@ -61,7 +133,7 @@ PACKS = [
         "c1": "#7b5ea7", "c2": "#ff6b35",
         "sub": "20 stickers · a ghost, a black cat, a bat, a pumpkin and a one-eyed monster",
         "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
-        "section": "Festive",
+        "section": None,
     },
     {
         "slug": "halloween-night",
@@ -168,7 +240,14 @@ def captions_from(data):
     for s in items:
         cap = s.get("caption")
         if not cap:
-            m = re.search(r'reads "([^"]+)"', s.get("accessibilityText", ""))
+            text = s.get("accessibilityText", "")
+            # "text that reads "Boo!"" for most packs; "with text "Ganesha's grace"" and
+            # "the Tamil call Vetrivel" for the Deepavali ones. A sticker whose words are Tamil
+            # script and described only as "the Tamil word for blessing" gets no caption: the
+            # picture carries the word, and a made-up English label under it would be wrong.
+            m = (re.search(r'reads "([^"]+)"', text)
+                 or re.search(r'with text "([^"]+)"', text)
+                 or re.search(r'Tamil (?:call|mantra) ([^.]+)\.$', text))
             cap = m.group(1) if m else ""
         out.append((cap, s.get("accessibilityText", ""), "".join(s.get("emojis", []))))
     return out
@@ -278,25 +357,103 @@ def sent_in():
     return out
 
 
+# Animated stickers go on the page smaller than they ship: the pack's 512 px files run 300-400 KB
+# each, and a twelve-sticker sheet of them is the heaviest thing on the site. 256 px is what the
+# sheet draws them at (twice that on a dense screen), and every second frame is dropped with its
+# time added to the one before, so the motion keeps its pace at about a quarter of the weight.
+SLIM_SIDE = 256
+SLIM_QUALITY = 70
+CARD_SIDE = 128
+CARD_QUALITY = 60
+
+
+def slim_animated(raw, side=SLIM_SIDE, quality=SLIM_QUALITY, step=2):
+    """An animated WebP at `side` px, or None when the file is a single frame."""
+    from PIL import Image, ImageSequence
+
+    im = Image.open(io.BytesIO(raw))
+    if getattr(im, "n_frames", 1) < 2:
+        return None
+    frames, times = [], []
+    for k, frame in enumerate(ImageSequence.Iterator(im)):
+        ms = frame.info.get("duration", 40)
+        if k % step:
+            times[-1] += ms
+            continue
+        f = frame.convert("RGBA")
+        f.thumbnail((side, side), Image.LANCZOS)
+        frames.append(f.copy())
+        times.append(ms)
+    out = io.BytesIO()
+    frames[0].save(out, "WEBP", save_all=True, append_images=frames[1:], duration=times,
+                   loop=0, quality=quality, method=4)
+    return out.getvalue()
+
+
+def still_of(raw, side=SLIM_SIDE):
+    from PIL import Image
+
+    im = Image.open(io.BytesIO(raw))
+    im.seek(0)
+    f = im.convert("RGBA")
+    f.thumbnail((side, side), Image.LANCZOS)
+    out = io.BytesIO()
+    f.save(out, "WEBP", quality=72, method=4)
+    return out.getvalue()
+
+
 def extract(slug):
-    """Unpack the .peel into the site so the page serves the real stickers."""
+    """Unpack the .peel into the site so the page serves the real stickers.
+
+    An animated pack's stickers are written slimmed, with a still of each beside them in
+    `stills/` for visitors who ask their device for less motion, and one small animated
+    `card.webp` for the rail. Still packs are written exactly as they ship.
+    """
     dest = SITE / "packs" / "img" / slug / "stickers"
     dest.mkdir(parents=True, exist_ok=True)
+    stills = dest.parent / "stills"
     with zipfile.ZipFile(SITE / "packs" / f"{slug}.peel") as z:
         names = sorted(n for n in z.namelist() if n.startswith("stickers/"))
-        for n in names:
-            (dest / pathlib.Path(n).name).write_bytes(z.read(n))
+        animated = bool(json.loads(z.read("manifest.json")).get("animated"))
+        for i, n in enumerate(names):
+            raw = z.read(n)
+            base = pathlib.Path(n).name
+            slim = slim_animated(raw) if animated else None
+            if slim is None:
+                (dest / base).write_bytes(raw)
+                continue
+            (dest / base).write_bytes(slim)
+            stills.mkdir(exist_ok=True)
+            (stills / base).write_bytes(still_of(raw))
+            if i == 0:
+                card = slim_animated(raw, CARD_SIDE, CARD_QUALITY, step=3)
+                if card:
+                    (dest.parent / "card.webp").write_bytes(card)
     return [pathlib.Path(n).name for n in names]
+
+
+def is_animated_pack(slug):
+    return (SITE / "packs" / "img" / slug / "stills").is_dir()
 
 
 def sticker(slug, base, cap, alt, emo, i, lazy=True):
     src = f"packs/img/{slug}/stickers/{base}"
     load = ' loading="lazy"' if lazy else ""
+
+    def face(cls, hidden=""):
+        img = f'<img class="{cls}" src="{src}" alt=""{hidden}{load} decoding="async">'
+        if not is_animated_pack(slug):
+            return img
+        # A visitor who asks for less motion gets the first frame: a WebP cannot be paused, so
+        # the still is a different file chosen by the same media query the rest of the page uses.
+        return (f'<picture><source media="(prefers-reduced-motion: reduce)" '
+                f'srcset="packs/img/{slug}/stills/{base}">{img}</picture>')
+
     return (
         f'      <div class="peel reveal" style="--tilt:{TILTS[i % len(TILTS)]}deg" tabindex="0" '
         f'role="img" aria-label="{html.escape(alt)}">\n'
-        f'        <img class="ghost" src="{src}" alt="" aria-hidden="true"{load} decoding="async">\n'
-        f'        <img class="face" src="{src}" alt=""{load} decoding="async">\n'
+        f'        {face("ghost", " aria-hidden=" + chr(34) + "true" + chr(34))}\n'
+        f'        {face("face")}\n'
         f'        <span class="curl"></span>\n'
         f'        <span class="label">{html.escape(cap)} {emo}</span>\n'
         f'      </div>'
@@ -325,7 +482,7 @@ def sheet_html(pack, files, caps, size_kb):
             f'{RAIL_START}\n{RAIL_END}\n'
             '</section>\n'
         )
-    link = peel_import_link(f"packs/{slug}.peel")
+    shelf, paid = shelf_of(slug)
     return f"""{head}<section class="sheet" id="{slug}" style="--c1:{pack['c1']};--c2:{pack['c2']}">
   <div class="sheet-head">
     <h3 class="sheet-title">{html.escape(pack['title'])}</h3>
@@ -336,12 +493,30 @@ def sheet_html(pack, files, caps, size_kb):
 {cells}
     </div>
   </div>
-  <div class="sheet-foot">
-    <a class="btn" href="packs/{slug}.peel" download>Download the sheet · {size_kb}</a>
-    <a class="btn ghost" href="{link}">Open in Peel</a>
-    <p class="how">{pack['after']}</p>
-  </div>
+{in_peel_foot("pack", shelf, paid)}
 </section>"""
+
+
+def in_peel_foot(kind, shelf, paid):
+    """The footer of a sheet or scene: where to find it in the app, and what it costs.
+
+    No download button. Peel fetches these files itself from More fun, so a button here only
+    sent people through a file picker to do by hand what the app does in one tap. The files
+    still sit at their addresses for the app to fetch.
+    """
+    mark = ('<span class="mark paid">Needs the unlock</span>' if paid
+            else '<span class="mark free">Free</span>')
+    where = "More fun"
+    note = (
+        '<p class="how">One unlock, once, opens every paid pack and scene. The price is shown in '
+        "Peel by Google Play.</p>"
+    ) if paid else ""
+    return (
+        '  <div class="sheet-foot in-peel">\n'
+        f'    <p class="path"><span class="where">In Peel</span> {where} &rarr; {html.escape(shelf)} {mark}</p>\n'
+        f'    {note}\n'
+        '  </div>'
+    )
 
 
 def standalone(pack, files, caps):
@@ -420,7 +595,8 @@ def main():
 
         # a few from each pack for the marquee
         for f in files[::4][:5]:
-            strip.append(f'<img src="packs/img/{pack["slug"]}/stickers/{f}" alt="" loading="lazy">')
+            where = "stills" if is_animated_pack(pack["slug"]) else "stickers"
+            strip.append(f'<img src="packs/img/{pack["slug"]}/{where}/{f}" alt="" loading="lazy">')
 
         if want_png:
             page = SITE / "packs" / "img" / pack["slug"] / "_sheet.html"

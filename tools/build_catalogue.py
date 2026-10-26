@@ -28,6 +28,7 @@ import base64
 import hashlib
 import io
 import json
+import os
 import pathlib
 import zipfile
 
@@ -45,7 +46,7 @@ SCENES_DIR = SITE / "scenes"
 
 # The Android project, which is a separate repo. Written into rather than read from, because the
 # site is where the downloadable files live and so the site is where the truth is.
-ASSETS = pathlib.Path.home() / "Projects/android-peel/app/src/main/assets"
+ASSETS = pathlib.Path(os.environ.get("PEEL_ASSETS") or (pathlib.Path.home() / "Projects/android-peel/app/src/main/assets"))
 THUMBS = ASSETS / "catalogue"
 PREVIEWS = ASSETS / "previews"
 # The same tiles, published beside the pack so the app can show a sheet for something that did
@@ -67,14 +68,76 @@ NEEDS = {"pack": 1, "scene": 15}
 # has never heard of its fingerprint and would hand it over for nothing. Naming the release
 # that does know it means every older install greys the card out with "Update Peel to get
 # this" instead -- which is the wrong-in-the-harmless-direction failure.
-NEEDS_BY_ID: dict[str, int] = {"dead-honest": 23, "sir-crow": 23}
+NEEDS_BY_ID: dict[str, int] = {
+    "dead-honest": 23, "sir-crow": 23,
+    # The Deepavali shelf needs Peel 2.5.0 (versionCode 50): that build carries their fingerprints
+    # and the animated sheet previews and the price on the card that let them sell themselves.
+    "lakshmi": 50, "divine-blessings": 50, "little-diya": 50, "mayil": 50, "kolam-lights": 50,
+    "deepavali-doorstep": 50,
+}
 
 # Packs that are sold. Peel 2.4.1 (versionCode 25) reads `paid` from the fetched list, so a paid
 # pack published from now on needs only an entry here and `needs` of 25 in NEEDS_BY_ID: no new
 # release has to add its fingerprint. Builds before 2.4.1 ignore the flag, which is why the new
 # pack's `needs` must be 25 -- those builds then grey the card instead of importing it free.
 # Dead Honest and Sir Crow are also compiled into the app (FreeContent.PAID_PACKS) and stay so.
-PAID_IDS: set[str] = {"dead-honest", "sir-crow"}
+PAID_IDS: set[str] = {
+    "dead-honest", "sir-crow",
+    "lakshmi", "divine-blessings", "little-diya", "mayil", "kolam-lights",
+}
+
+# Categories. Peel groups packs by these on Home and in More fun. The list travels in the
+# catalogue file, and each item names one by id, so adding a category or moving a pack between
+# two needs no app release: an app that has no words for a category shows the name given here,
+# and one that has never heard of the id shows the pack under "More". Ids are fixed once
+# published -- the app keys the person's own filing on them. Peel 2.5.0 is the first to read
+# them; older builds ignore the fields.
+CATEGORIES = [
+    {"id": "halloween", "en": "Halloween", "ms": "Halloween"},
+    {"id": "cats", "en": "Cats", "ms": "Kucing"},
+    {"id": "chat", "en": "Chat and reactions", "ms": "Sembang dan reaksi"},
+    {"id": "cosy", "en": "Cosy nights", "ms": "Malam santai"},
+    {"id": "festivals", "en": "Festivals", "ms": "Perayaan"},
+]
+CATEGORY_BY_ID: dict[str, str] = {
+    "dead-honest": "halloween",
+    "ghost-says": "halloween",
+    "halloween-night": "halloween",
+    "halloween": "halloween",
+    "low-light": "halloween",
+    "just-lurking": "cats",
+    "midnight-replies": "cats",
+    "oyen-kampung": "cats",
+    "reactions": "chat",
+    "say-it": "chat",
+    "sir-crow": "halloween",
+    "moth-lights": "halloween",
+    # Scenes carry one too, for later; More fun keeps its single Scenes ring for now.
+    "firefly-jar": "cosy",
+    "lantern-alley": "cosy",
+    "village-night": "cosy",
+    "knock-twice": "halloween",
+    # The Deepavali shelf. Not published until 2.5.0 is live: these ids exist here so the day
+    # the files go into site/packs and site/scenes they come out filed and priced correctly.
+    "happy-deepavali": "festivals",
+    "lakshmi": "festivals",
+    "divine-blessings": "festivals",
+    "little-diya": "festivals",
+    "mayil": "festivals",
+    "kolam-lights": "festivals",
+    "deepavali-doorstep": "festivals",
+}
+
+# What leads More fun. The list's own order is the page's order: the app shows categories in the
+# order it first meets them and cards in the order they are listed, so the season's shelf goes
+# first by being first here, and gives the top back by being removed from SHELF_FIRST. For
+# Deepavali the paid hero leads and the free greeting sits third, where the person who came for
+# a free greeting still finds it without the first card being a free one.
+SHELF_FIRST = "festivals"
+SHELF_ORDER = [
+    "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
+    "little-diya", "mayil", "kolam-lights",
+]
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
 # be a five-fold upscale; WebP with alpha because pack trays are cut-outs and a white box
@@ -166,6 +229,45 @@ PREVIEW_MAX = 128
 PREVIEW_QUALITY = 80
 
 
+# An animated pack's first tiles move in the sheet, so its preview is an animated WebP rather than
+# frame 0: a locked pack is judged from this sheet and nothing else, and a row of still pictures
+# sold motion as something less than it is. Every second frame is kept (a 20-frame sticker plays as
+# 10 at 5 fps), which is what keeps a tile near 30 KB at 128 px; the full-rate frames would be double
+# for a movement nobody studies at 48 dp. Raise PREVIEW_FRAME_STEP's cost deliberately: the tiles
+# ship in the APK and on the site, once per animated pack.
+#
+# PLAY_TILES mirrors MAX_PLAYING in StickerSheet.kt: the app plays only the first twelve tiles of a
+# sheet, so a longer pack's later tiles are written still. Keep the two numbers equal.
+PLAY_TILES = 12
+PREVIEW_FRAME_STEP = 2
+PREVIEW_ANIM_QUALITIES = (40, 32, 26, 20)
+PREVIEW_ANIM_MAX_BYTES = 40 * 1024
+
+
+def animated_preview(im: Image.Image, target: pathlib.Path) -> bool:
+    """Write [im] as an animated tile; False when it is a single frame, so the caller writes a still."""
+    frames = getattr(im, "n_frames", 1)
+    if frames < 2:
+        return False
+    ms = (im.info.get("duration") or 100) * PREVIEW_FRAME_STEP
+    tiles = []
+    for i in range(0, frames, PREVIEW_FRAME_STEP):
+        im.seek(i)
+        f = im.convert("RGBA")
+        f.thumbnail((PREVIEW_MAX, PREVIEW_MAX), Image.LANCZOS)
+        tiles.append(f)
+    data = b""
+    for q in PREVIEW_ANIM_QUALITIES:
+        buf = io.BytesIO()
+        tiles[0].save(buf, "WEBP", save_all=True, append_images=tiles[1:], duration=ms, loop=0,
+                      background=(255, 255, 255, 255), quality=q, alpha_quality=q, method=6)
+        data = buf.getvalue()
+        if len(data) <= PREVIEW_ANIM_MAX_BYTES:
+            break
+    target.write_bytes(data)
+    return True
+
+
 def previews_of(path: pathlib.Path, files: list[str], out: pathlib.Path) -> int:
     """Every sticker in the archive, scaled to a sheet tile. Returns the bytes written."""
     out.mkdir(parents=True, exist_ok=True)
@@ -175,13 +277,15 @@ def previews_of(path: pathlib.Path, files: list[str], out: pathlib.Path) -> int:
     with zipfile.ZipFile(path) as z:
         for n, inner in enumerate(files, start=1):
             im = Image.open(io.BytesIO(z.read(inner)))
-            # An animated sticker's preview is frame 0, the frame WhatsApp rests on and the one
-            # the app shows when it is not playing. The sheet says "animated"; the tiles do not.
-            im.seek(0)
-            im = im.convert("RGBA")
-            im.thumbnail((PREVIEW_MAX, PREVIEW_MAX), Image.LANCZOS)
             target = out / f"{n:02d}.webp"
-            im.save(target, "WEBP", quality=PREVIEW_QUALITY, method=6)
+            # The tiles that play are animated files. Every other tile is frame 0, the frame
+            # WhatsApp rests on and the one the app shows when it is not playing (reduced motion,
+            # API < 28), so a still pack and the tail of a long animated one are unchanged.
+            if n > PLAY_TILES or not animated_preview(im, target):
+                im.seek(0)
+                im = im.convert("RGBA")
+                im.thumbnail((PREVIEW_MAX, PREVIEW_MAX), Image.LANCZOS)
+                im.save(target, "WEBP", quality=PREVIEW_QUALITY, method=6)
             written += target.stat().st_size
     return written
 
@@ -225,8 +329,20 @@ def main() -> None:
         thumb_of(p, inner, THUMBS / f"{entry['id']}.jpg")
         items.append(entry)
 
+    for entry in items:
+        category = CATEGORY_BY_ID.get(entry["id"])
+        if category:
+            entry["category"] = category
+        else:
+            print(f"  note: {entry['id']} has no category, so Peel shows it under More")
+
+    items.sort(key=lambda e: (
+        0 if e.get("category") == SHELF_FIRST else 1,
+        SHELF_ORDER.index(e["id"]) if e["id"] in SHELF_ORDER else len(SHELF_ORDER),
+    ))
+
     out = ASSETS / "catalogue.json"
-    out.write_text(json.dumps({"v": VERSION, "items": items}, indent=2, ensure_ascii=False) + "\n")
+    out.write_text(json.dumps({"v": VERSION, "categories": CATEGORIES, "items": items}, indent=2, ensure_ascii=False) + "\n")
     print(f"{out}  ({len(items)} items)")
     for i in items:
         print(f"  {i['kind']:5} {i['id']:18} {i['pieces']:3} pieces  {i['size']:>8}")
@@ -257,7 +373,7 @@ def main() -> None:
 
     site_out = SITE / "catalogue.json"
     site_out.write_text(
-        json.dumps({"v": VERSION, "items": overlay}, ensure_ascii=False) + "\n")
+        json.dumps({"v": VERSION, "categories": CATEGORIES, "items": overlay}, ensure_ascii=False) + "\n")
     size = site_out.stat().st_size
     print(f"\n{site_out}  ({len(overlay)} items, {size / 1024:.0f} KB)")
     if size > 512 * 1024:

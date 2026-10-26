@@ -148,14 +148,27 @@ def card_html(card, first):
         + (["needs the unlock"] if card["paid"] else [])
     )
 
+    still = f'<img src="data:image/webp;base64,{card["thumb"]}" alt="" width="96" height="96" decoding="async">'
+    card_file = SITE / "packs" / "img" / card["slug"] / "card.webp"
+    if card["animated"] and not card["scene"] and card_file.exists():
+        # The rail card moves when its pack moves. A visitor who asks for less motion gets the
+        # catalogue's own still, which is already inlined, so nothing extra is fetched for them.
+        art = (
+            f'<picture><source media="(prefers-reduced-motion: reduce)" '
+            f'srcset="data:image/webp;base64,{card["thumb"]}">'
+            f'<img src="packs/img/{card["slug"]}/card.webp" alt="" width="96" height="96" '
+            f'decoding="async"></picture>'
+        )
+    else:
+        art = still
+
     return (
         f'<button class="pcard{" is-on" if first else ""}" type="button" '
         f'role="tab" id="tab-{card["slug"]}" data-for="{card["slug"]}" '
         f'aria-controls="{card["slug"]}" aria-selected="{"true" if first else "false"}" '
         f'tabindex="{"0" if first else "-1"}" '
         f'style="--c1:{card["c1"]};--c2:{card["c2"]}">'
-        f'<span class="pcard-art"><img src="data:image/webp;base64,{card["thumb"]}" alt="" '
-        f'width="96" height="96" decoding="async"></span>'
+        f'<span class="pcard-art">{art}</span>'
         f'<span class="pcard-body">'
         f'<span class="pcard-title">{esc(card["title"])}</span>'
         f'<span class="pcard-meta">{pieces}</span>'

@@ -959,3 +959,30 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
    fact about the pack, not a badge competing with its name. */
 .pcard-likes { display: block; font-size: 12px; color: var(--muted); line-height: 1.5; }
 .pcard-likes:empty { display: none; }
+
+/* ── Packs page: what the app can download, in place of download buttons ───────────────────
+   The sheets and scenes no longer carry download buttons: Peel fetches them itself from More
+   fun. A footer says where to find the pack in the app and what it costs. */
+.sheet-foot.in-peel { flex-direction: column; align-items: flex-start; gap: .35rem; }
+.in-peel .path { margin: 0; font-weight: 700; display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+.in-peel .where {
+  font-size: .78rem; letter-spacing: .04em; text-transform: uppercase;
+  background: color-mix(in srgb, var(--c2, var(--accent)) 28%, var(--paper));
+  border-radius: 999px; padding: .12rem .6rem;
+}
+.in-peel .mark {
+  font-size: .78rem; font-weight: 700; border-radius: 999px; padding: .12rem .6rem;
+  background: color-mix(in srgb, #5fb87a 30%, var(--paper));
+}
+.in-peel .mark.paid { background: color-mix(in srgb, var(--lemon) 55%, var(--paper)); }
+/* A sticker that moves sits in a <picture> so a reduced-motion visitor gets a still; the
+   wrapper must not become a box of its own or the peel's layers stop lining up. */
+.peel picture { display: contents; }
+.get-peel {
+  margin: 3rem auto 1rem; max-width: 40rem; text-align: center;
+  padding: 1.6rem 1.2rem; border-radius: 22px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--paper));
+}
+.get-peel h2 { margin: 0 0 .4rem; }
+.get-peel p { margin: 0 0 1rem; }
+.get-peel .cta { justify-content: center; }
