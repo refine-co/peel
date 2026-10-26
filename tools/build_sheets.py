@@ -10,6 +10,7 @@ Needs Google Chrome for the PNG render; pass --no-png to skip it.
 """
 
 import colorsys
+import datetime
 import html
 import io
 import json
@@ -59,6 +60,24 @@ def shelf_of(slug):
             return (names.get(key) if key else None) or OTHER_SHELF, bool(item.get("paid"))
     return OTHER_SHELF, False
 
+PLAY_URL = "https://play.google.com/store/apps/details?id=my.refineco.peel"
+
+
+def pack_file(slug):
+    """Where a pack's archive actually is.
+
+    A free pack sits at packs/<slug>.peel. A paid one sits in the directory build_catalogue.py
+    keeps it in, so the file is not one guessed URL away from anybody on the web. Both are read
+    the same way here: this page is built from the archives, whatever their path.
+    """
+    direct = SITE / "packs" / f"{slug}.peel"
+    if direct.exists():
+        return direct
+    found = sorted((SITE / "packs").glob(f"*/{slug}.peel"))
+    if not found:
+        raise SystemExit(f"no archive for {slug} under packs/")
+    return found[0]
+
 
 def peel_import_link(path):
     """The intent link that hands Peel the file at `path` on this site."""
@@ -73,7 +92,8 @@ def peel_import_link(path):
 # What a paid pack's page says in place of the "download first" line. Same promise as a paid
 # scene (build_scenes.py): one purchase, once, and the file downloads either way.
 UNLOCK_NOTE = ("This one needs Peel unlocked \u2014 a single purchase, once, that opens every paid "
-               "pack and scene. The file downloads either way, and waits in Peel until it is.")
+               "pack and scene. Open Peel and tap More fun: the sheet downloads onto the phone "
+               "that owns the unlock, and is not handed out from this page.")
 
 PACKS = [
     # The Deepavali shelf leads, hero first (see build_catalogue.SHELF_ORDER). Taken off the front
@@ -192,6 +212,27 @@ PACKS = [
         "section": None,
     },
     {
+        "slug": "low-light",
+        "title": "Low Light",
+        "c1": "#3a2410", "c2": "#ffb13d",
+        "sub": "12 animated stickers · a jack-o'-lantern lit from inside, whose candle is its mood: Fully charged, Running on empty, Lights out",
+        "story": "There is a candle inside him and some days it is barely there. He is not sad about it. He slumps, he flickers, he goes out altogether and sits in the dark with a wisp of smoke — and then something small works, and he is blazing again.",
+        "new_until": "2026-12-01",
+        "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
+        "section": None,
+    },
+    {
+        "slug": "just-lurking",
+        "title": "Just Lurking",
+        "c1": "#15151c", "c2": "#c6f24a",
+        "sub": "12 animated stickers · a black cat who is never more than two glowing eyes in the dark: I'm watching, I saw that, No comment",
+        "story": "She has read every message. She has replied to none of them. All you ever see is two eyes in the dark, and they are definitely still open.",
+        "new_until": "2026-12-01",
+        "after": UNLOCK_NOTE,
+        "paid": True,
+        "section": None,
+    },
+    {
         "slug": "reactions",
         "title": "Reactions",
         "spec": "humans-captions.json",
@@ -226,7 +267,7 @@ def captions_of(pack):
     """
     if pack.get("spec"):
         return captions(SPECS / pack["spec"])
-    with zipfile.ZipFile(SITE / "packs" / f"{pack['slug']}.peel") as z:
+    with zipfile.ZipFile(pack_file(pack["slug"])) as z:
         return captions_from(json.loads(z.read("manifest.json")))
 
 
@@ -319,7 +360,10 @@ def sent_in():
     """
     known = {p["slug"] for p in PACKS}
     out = []
-    for path in sorted((SITE / "packs").glob("*.peel")):
+    for path in sorted(
+        list((SITE / "packs").glob("*.peel")) + list((SITE / "packs").glob("*/*.peel")),
+        key=lambda f: f.name,
+    ):
         if path.stem in known:
             continue
         with zipfile.ZipFile(path) as z:
@@ -412,7 +456,7 @@ def extract(slug):
     dest = SITE / "packs" / "img" / slug / "stickers"
     dest.mkdir(parents=True, exist_ok=True)
     stills = dest.parent / "stills"
-    with zipfile.ZipFile(SITE / "packs" / f"{slug}.peel") as z:
+    with zipfile.ZipFile(pack_file(slug)) as z:
         names = sorted(n for n in z.namelist() if n.startswith("stickers/"))
         animated = bool(json.loads(z.read("manifest.json")).get("animated"))
         for i, n in enumerate(names):
@@ -458,6 +502,45 @@ def sticker(slug, base, cap, alt, emo, i, lazy=True):
         f'        <span class="label">{html.escape(cap)} {emo}</span>\n'
         f'      </div>'
     )
+
+
+# A pack published recently gets its own billing above the wheel, with a few words about who
+# the character is rather than what the pack contains. `new_until` is a date and not a flag,
+# so the block empties itself: a "new" that has to be cleared by hand is how a page ends up
+# announcing something that shipped a month ago.
+NEW_START = "<!-- new:start -->"
+NEW_END = "<!-- new:end -->"
+
+
+def just_landed(packs, today):
+    """The billing block for packs still inside their `new_until` date, newest first."""
+    cards = []
+    for pack in sorted((p for p in packs if p.get("story") and p.get("new_until", "") >= today),
+                       key=lambda p: p["new_until"], reverse=True):
+        slug = pack["slug"]
+        shots = sorted((SITE / "packs" / "img" / slug / "stickers").glob("*.webp"))[:4]
+        tiles = "".join(
+            f'<img src="packs/img/{slug}/stickers/{f.name}" alt="" width="120" height="120" loading="lazy">'
+            for f in shots)
+        kind = pack["sub"].split("\u00b7")[0].strip()
+        cards.append(
+            f'<section class="sheet" style="--c1:{pack["c1"]};--c2:{pack["c2"]}">\n'
+            f'  <div class="sheet-head">\n'
+            f'    <h3 class="sheet-title">{html.escape(pack["title"])}</h3>\n'
+            f'    <p class="sheet-sub">{kind}</p>\n'
+            f'  </div>\n'
+            f'  <div class="sheet-body">\n'
+            f'    <p class="scene-blurb" style="margin-bottom:.9rem">{html.escape(pack["story"])}</p>\n'
+            f'    <div class="sheet-grid">{tiles}</div>\n'
+            f'  </div>\n'
+            f'  <div class="sheet-foot">\n'
+            f'    <a class="btn" href="#{slug}">See all twelve</a>\n'
+            f'  </div>\n'
+            f'</section>')
+    if not cards:
+        return ""
+    return ('<section class="rail-section" id="just-landed" aria-labelledby="just-landed-h">\n'
+            '<h2 id="just-landed-h">Just landed</h2>\n' + "\n".join(cards) + '\n</section>')
 
 
 def sheet_html(pack, files, caps, size_kb):
@@ -589,7 +672,7 @@ def main():
         caps = captions_of(pack)
         assert len(files) == len(caps), f"{pack['slug']}: {len(files)} files, {len(caps)} captions"
 
-        size = (SITE / "packs" / f"{pack['slug']}.peel").stat().st_size
+        size = pack_file(pack["slug"]).stat().st_size
         size_kb = f"{size / 1024 / 1024:.1f} MB" if size > 1024 * 1024 else f"{size // 1024} KB"
         sections.append(sheet_html(pack, files, caps, size_kb))
 
@@ -623,6 +706,12 @@ def main():
             '</div>'
         )
     body = "\n\n".join(sections)
+    today = datetime.date.today().isoformat()
+    src = re.sub(
+        re.escape(NEW_START) + r".*?" + re.escape(NEW_END),
+        NEW_START + "\n" + just_landed(PACKS, today) + "\n" + NEW_END,
+        src, flags=re.S,
+    )
     src = re.sub(
         r"<!-- sheets:start -->.*?<!-- sheets:end -->",
         "<!-- sheets:start -->\n" + body + "\n<!-- sheets:end -->",
