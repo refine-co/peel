@@ -104,7 +104,7 @@ PACKS = [
         "spec": None,
         "c1": "#4a1d6e", "c2": "#ffb347",
         "sub": "12 animated stickers \u00b7 twelve deities, each in a glow of its own colour, with a blessing to send",
-        "section": "Festive",
+        "section": None,
     },
     {
         "slug": "lakshmi",
@@ -153,7 +153,7 @@ PACKS = [
         "c1": "#7b5ea7", "c2": "#ff6b35",
         "sub": "20 stickers · a ghost, a black cat, a bat, a pumpkin and a one-eyed monster",
         "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
-        "section": None,
+        "section": "Festive",
     },
     {
         "slug": "halloween-night",
@@ -739,6 +739,19 @@ def main():
           f"spells both out in words and is not checked — read it when either changes.)")
 
 
+# The order the page shows the packs in, which is not the catalogue's order. The page opens on
+# Halloween, and the Deepavali shelf follows the Halloween packs; the app's More fun is ordered
+# by build_catalogue.py (SHELF_FIRST) and is a separate decision. Anything not listed, such as a
+# pack somebody sent in, goes after these in the order it was found. Sorted in place: build_deck
+# already holds this list.
+PAGE_ORDER = [
+    "halloween", "halloween-night", "midnight-replies", "ghost-says", "moth-lights",
+    "dead-honest", "sir-crow", "low-light", "just-lurking",
+    "divine-blessings", "lakshmi", "happy-deepavali", "little-diya", "mayil", "kolam-lights",
+    "reactions", "say-it", "oyen-kampung",
+]
+
+
 # At import, not inside main(), because build_deck.py imports PACKS and builds the rail from
 # it — a sent-in pack has to be in the list before either script walks it. extend() rather than
 # a rebind so the list build_deck already holds is the one that grows.
@@ -746,6 +759,7 @@ for _entry in sent_in():
     extract(_entry["slug"])                       # shades() reads the unpacked stickers
     _entry["c1"], _entry["c2"] = shades(_entry["slug"], _entry.pop("files"))
     PACKS.append(_entry)
+PACKS.sort(key=lambda p: PAGE_ORDER.index(p["slug"]) if p["slug"] in PAGE_ORDER else len(PAGE_ORDER))
 
 
 if __name__ == "__main__":

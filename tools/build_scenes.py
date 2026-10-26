@@ -106,6 +106,10 @@ SCENES = [
     },
 ]
 
+# The page opens on the Halloween scene, then the Deepavali one; the rest keep the order above.
+SCENE_ORDER = ["knock-twice", "deepavali-doorstep"]
+SCENES.sort(key=lambda s: SCENE_ORDER.index(s["slug"]) if s["slug"] in SCENE_ORDER else len(SCENE_ORDER))
+
 SECTION_INTRO = (
     "A scene is a picture with its own stickers lifted out of it. You get the empty place and "
     "the things that belong in it, and you put them back — the far ones first, so the near ones "
