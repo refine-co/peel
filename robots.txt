@@ -1,0 +1,7 @@
+# peel.refineco.app
+# Everything here is meant to be found: the app page, the sticker packs and the
+# two pages a Play listing has to link to.
+User-agent: *
+Allow: /
+
+Sitemap: https://peel.refineco.app/sitemap.xml

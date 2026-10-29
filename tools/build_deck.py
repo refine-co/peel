@@ -250,6 +250,9 @@ def fill(src, start, end, html):
 
 LIKES_URL = "https://peel-submit.refineco.workers.dev/packs/likes"
 
+SCHEMA_START = "<!-- schema:start -->"
+SCHEMA_END = "<!-- schema:end -->"
+
 COMMUNITY_HEADING = "From the community"
 COMMUNITY_START = "<!-- community-rail:start -->"
 COMMUNITY_END = "<!-- community-rail:end -->"
@@ -314,6 +317,26 @@ def build():
     # site with nothing published yet, and fill() then leaves the page alone.
     if community and COMMUNITY_START in src:
         src = fill(src, COMMUNITY_START, COMMUNITY_END, rail_html(community, "community"))
+    # Structured data for the packs page, written here because this is the file that already
+    # knows the whole list and its order. Google reads an ItemList to understand that the page
+    # is a catalogue of named things rather than one long article, which is what it looks like
+    # from 261 stickers of markup. No rating is claimed anywhere: Peel has none.
+    listed = [c for c in items if not c["community"]]
+    schema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Peel sticker packs and scenes",
+        "numberOfItems": len(listed),
+        "itemListElement": [
+            {"@type": "ListItem", "position": i + 1,
+             "url": f"https://peel.refineco.app/packs.html#{c['slug']}",
+             "name": c["title"]}
+            for i, c in enumerate(listed)
+        ],
+    }
+    src = fill(src, SCHEMA_START, SCHEMA_END,
+               '<script type="application/ld+json">\n'
+               + json.dumps(schema, indent=1, ensure_ascii=False) + "\n</script>")
     PAGE.write_text(src)
     total_likes = sum(c["likes"] for c in community)
     shelf_counts = ", ".join(f"{name} {len(shelves[name])}" for name in order)
