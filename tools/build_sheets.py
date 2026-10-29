@@ -104,7 +104,7 @@ PACKS = [
         "spec": None,
         "c1": "#4a1d6e", "c2": "#ffb347",
         "sub": "12 animated stickers \u00b7 twelve deities, each in a glow of its own colour, with a blessing to send",
-        "section": None,
+        "section": "Deepavali",
     },
     {
         "slug": "lakshmi",
@@ -153,7 +153,7 @@ PACKS = [
         "c1": "#7b5ea7", "c2": "#ff6b35",
         "sub": "20 stickers · a ghost, a black cat, a bat, a pumpkin and a one-eyed monster",
         "after": 'Download first — <strong>Open in Peel</strong> then picks it up from your Downloads folder.',
-        "section": "Festive",
+        "section": None,
     },
     {
         "slug": "halloween-night",
@@ -198,7 +198,6 @@ PACKS = [
         "c1": "#3a2a2a", "c2": "#ff4d5e",
         "sub": "12 animated stickers · a deadpan skeleton for the dry replies: Dead tired, Bored to death, I'm fine",
         "after": UNLOCK_NOTE,
-        "paid": True,
         "section": None,
     },
     {
@@ -208,7 +207,6 @@ PACKS = [
         "c1": "#2a2f45", "c2": "#a9c4ff",
         "sub": "12 animated stickers · a top-hatted crow for the polite replies: Good evening, Much obliged, How dare you",
         "after": UNLOCK_NOTE,
-        "paid": True,
         "section": None,
     },
     {
@@ -229,8 +227,7 @@ PACKS = [
         "story": "She has read every message. She has replied to none of them. All you ever see is two eyes in the dark, and they are definitely still open.",
         "new_until": "2026-12-01",
         "after": UNLOCK_NOTE,
-        "paid": True,
-        "section": None,
+        "section": "Halloween",
     },
     {
         "slug": "reactions",
@@ -548,11 +545,24 @@ def sheet_html(pack, files, caps, size_kb):
     cells = "\n".join(
         sticker(slug, f, c, a, e, i) for i, (f, (c, a, e)) in enumerate(zip(files, caps))
     )
-    head = f'<h2 id="{slug}-h">{pack["section"]}</h2>\n' if pack["section"] else ""
+    head = ""
     # The community heading carries its wheel, the way the packs and scenes headings carry
     # theirs. Written as an empty region here and filled by build_deck.py, which is the only
     # file that knows how to draw a rail. Putting the rail beside the packs rail instead left
     # two wheels stacked at the top of the page with neither one's sheets under it.
+    if pack["section"] and pack["section"] != COMMUNITY_SECTION and slug != FIRST_SHELF:
+        # Halloween, Deepavali, From the makers: a heading and a wheel of that group's packs,
+        # directly above the sheets the wheel turns through. Written as an empty region and
+        # filled by build_deck.py, the only file that knows how to draw a rail -- the same
+        # arrangement the community shelf below uses, and for the same reason. Every pack sheet
+        # has to belong to exactly one wheel: a sheet no wheel owns is never collapsed, and the
+        # page grows back the 30,000 px the rail exists to remove.
+        head = (
+            f'<section class="rail-section" id="shelf-{slug}" aria-labelledby="{slug}-h">\n'
+            f'<h2 id="{slug}-h">{pack["section"]}</h2>\n'
+            f'<!-- rail-{slug}:start -->\n<!-- rail-{slug}:end -->\n'
+            '</section>\n'
+        )
     if pack["section"] == COMMUNITY_SECTION:
         # Heading, note and wheel inside one element with an id, exactly like #packs. peel.js
         # scrolls to the element a rail's data-anchor names when a card is opened; without one
@@ -739,15 +749,23 @@ def main():
           f"spells both out in words and is not checked — read it when either changes.)")
 
 
-# The order the page shows the packs in, which is not the catalogue's order. The page opens on
-# Halloween, and the Deepavali shelf follows the Halloween packs; the app's More fun is ordered
-# by build_catalogue.py (SHELF_FIRST) and is a separate decision. Anything not listed, such as a
-# pack somebody sent in, goes after these in the order it was found. Sorted in place: build_deck
-# already holds this list.
+# The order the page shows the packs in, which is not the catalogue's order. Halloween and
+# Deepavali are two sections rather than one "Festive" shelf, Halloween first while the night is
+# still coming; the app's More fun is ordered by build_catalogue.py (CATEGORY_ORDER) and is a
+# separate decision. Inside each section the animated packs come first: a sticker that moves is
+# the thing a first-time reader did not expect from a free app, and it only does its work if it
+# is on screen before the scrolling stops. The still sheets follow, and they are the larger ones,
+# so nothing is hidden by being second. Anything not listed, such as a pack somebody sent in,
+# goes after these in the order it was found. Sorted in place: build_deck already holds this
+# list.
 PAGE_ORDER = [
-    "halloween", "halloween-night", "midnight-replies", "ghost-says", "moth-lights",
-    "dead-honest", "sir-crow", "low-light", "just-lurking",
-    "divine-blessings", "lakshmi", "happy-deepavali", "little-diya", "mayil", "kolam-lights",
+    # Halloween: animated first.
+    "just-lurking", "low-light", "ghost-says", "moth-lights", "dead-honest", "sir-crow",
+    "halloween", "halloween-night", "midnight-replies",
+    # Deepavali: animated first. The one free sheet, Happy Deepavali, is also the one that does
+    # not move, so it lands last here -- worth a second look if the free greeting is the thing
+    # the page is meant to hand out.
+    "divine-blessings", "lakshmi", "little-diya", "mayil", "kolam-lights", "happy-deepavali",
     "reactions", "say-it", "oyen-kampung",
 ]
 
@@ -760,6 +778,10 @@ for _entry in sent_in():
     _entry["c1"], _entry["c2"] = shades(_entry["slug"], _entry.pop("files"))
     PACKS.append(_entry)
 PACKS.sort(key=lambda p: PAGE_ORDER.index(p["slug"]) if p["slug"] in PAGE_ORDER else len(PAGE_ORDER))
+
+# The pack that opens the first shelf. Its heading and wheel are the ones at the top of the
+# page, inside the deck markers, so sheet_html() writes no region of its own for it.
+FIRST_SHELF = next((p["slug"] for p in PACKS if p["section"]), None)
 
 
 if __name__ == "__main__":

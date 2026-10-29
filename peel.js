@@ -154,16 +154,6 @@
       if (el) sections[card.dataset.for] = el;
     });
 
-    // The pack group headings sit outside every section, so hiding only the sections would leave
-    // "Festive" and "From the makers" standing over nothing. The scenes have no such headings:
-    // the Scenes heading and its note belong to the section, and stay.
-    if (kind === "packs") {
-      ["halloween-h", "reactions-h"].forEach(function (id) {
-        var h = document.getElementById(id);
-        if (h) h.hidden = true;
-      });
-    }
-
     // Where "scroll to the rail" lands (the section heading, so the heading is not left above
     // the screen), and this rail's own arrows: found from the rail, never from the page, or the
     // second rail would move the first one.
@@ -499,7 +489,6 @@
       var hash = (location.hash || "").slice(1);
       if (sections[hash]) return hash;
       if (hash === rail.dataset.anchor) return cards[0].dataset.for;
-      if (kind === "packs" && (hash === "reactions-h" || hash === "halloween-h")) return cards[0].dataset.for;
       return null;
     }
 

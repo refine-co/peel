@@ -790,6 +790,7 @@ footer {
 
 .rail-lead { margin: 0 0 .2rem; font-size: .92rem; color: var(--muted); }
 .rail-lead span { color: var(--accent); font-weight: 600; }
+.rail-lead .moving { color: #6fd397; }
 
 /* The cards run under a fade at both edges, so a rail that continues looks like one. */
 .rail-wrap::before,
@@ -901,6 +902,32 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
   box-shadow: 0 0 0 1px var(--line);
 }
 .pcard-marks .mark.paid { background: color-mix(in srgb, var(--lemon) 55%, var(--paper)); }
+/* Animated is the badge worth seeing first, so it gets the green the sheet footers already use
+   and a dot that keeps time with the card art beside it. The dot is decoration: the word
+   "Animated" is still there with the animation off, and a reader who asks for less motion gets
+   the still card and a still dot. */
+.pcard-marks .mark.motion {
+  display: inline-flex;
+  align-items: center;
+  gap: .32rem;
+  font-weight: 700;
+  background: color-mix(in srgb, #5fb87a 30%, var(--paper));
+}
+.pcard-marks .mark.motion::before {
+  content: "";
+  width: .42rem;
+  height: .42rem;
+  border-radius: 50%;
+  background: #3f9d62;
+  animation: mark-pulse 1.6s ease-in-out infinite;
+}
+@keyframes mark-pulse {
+  0%, 100% { opacity: 1; scale: 1; }
+  50% { opacity: .3; scale: .65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pcard-marks .mark.motion::before { animation: none; }
+}
 
 /* the one in the middle */
 .pcard.is-on { scale: 1; opacity: 1; box-shadow: var(--shadow), 0 0 0 2px var(--c2); }

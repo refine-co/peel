@@ -60,7 +60,15 @@ def cards(likes):
             "unit": "sticker",
             "animated": item["animated"],
             "scene": False,
-            "paid": bool(pack.get("paid")),
+            # From the catalogue, not from the PACKS list, because the catalogue is the file
+            # Peel itself reads: a pack is locked in the app exactly when `paid` is set there.
+            # Taking it from the hand-written list let the two disagree, and they did -- the
+            # five paid Deepavali packs went up unbadged while Just Lurking, which is free,
+            # carried a badge. Scenes below are the opposite case and must stay on their own
+            # list: the app decides a scene by FreeContent.SCENES (unknown scene = paid), so
+            # the catalogue carries no `paid` for one and reading it here would unbadge both
+            # paid scenes.
+            "paid": bool(item.get("paid")),
             # Set by peel_review.py when a submission is published; the catalogue carries it
             # and both the app and this page group by it.
             "community": bool(item.get("community")),
@@ -133,7 +141,10 @@ def card_html(card, first):
 
     marks = []
     if card["animated"]:
-        marks.append('<span class="mark">Animated</span>')
+        # Its own class, not the plain mark: a sticker that moves is the thing a first-time
+        # reader does not expect from a free app, and the card art already moves to prove it.
+        # The badge is what names it for somebody who has not watched long enough to notice.
+        marks.append('<span class="mark motion">Animated</span>')
     # Before the download button, never after it. A file that downloads and then will not open
     # is the worst possible way to learn the price.
     if card["paid"]:
@@ -180,32 +191,44 @@ def card_html(card, first):
     )
 
 
-def rail_html(items, kind):
+def rail_html(items, kind, rail_id=None, anchor=None, label=None):
     """One wheel: a lead line, its own arrows, and one card per item of [kind].
 
     [kind] is "packs", "community" or "scenes". The rail carries it in `data-kind` and the id of the
     thing the page should scroll to in `data-anchor`, so peel.js can run the same code for both
     without knowing which is which. Each rail owns its own arrows, inside its own nav, because
     peel.js finds them from the rail and not from the page.
+
+    The packs are drawn as several wheels, one per shelf, which all behave as "packs" and so
+    share a [kind]. [rail_id], [anchor] and [label] are what tells those apart: each shelf needs
+    its own element id and its own scroll target, or a card in one would send the reader to
+    another shelf's heading and the second wheel would drive the first one's arrows.
     """
     body = "\n".join(card_html(c, i == 0) for i, c in enumerate(items))
     scenes = kind == "scenes"
-    noun, label = {
+    noun, label_default = {
         "scenes": ("scene", "Scenes"),
         "community": ("pack", "Packs from the community"),
     }.get(kind, ("pack", "Sticker packs"))
     count = len(items)
     thing = "scene" if scenes else ("pack from the community" if kind == "community" else "sticker pack")
+    label = label or label_default
     # What "scroll back to the wheel" means for this rail: its own section, never a
     # neighbour's. Getting this wrong sends a reader to the top of a different section.
-    anchor = {"scenes": "scenes", "community": "community"}.get(kind, "packs")
-    lead = (f'  <p class="rail-lead">{count} {thing}{"" if count == 1 else "s"}. '
+    anchor = anchor or {"scenes": "scenes", "community": "community"}.get(kind, "packs")
+    rail_id = rail_id or f"rail-{kind}"
+    moving = sum(1 for c in items if c["animated"])
+    # Said in the lead as well as on the cards, because the count is the part that is hard to
+    # see: one badge reads as a curiosity, "six of them animated" reads as a reason to swipe.
+    moves = (f' <span class="moving">{moving} of them animated.</span>' if moving > 1
+             else ' <span class="moving">One of them animated.</span>' if moving else "")
+    lead = (f'  <p class="rail-lead">{count} {thing}{"" if count == 1 else "s"}.{moves} '
             f'<span>Swipe to see {"them all" if count != 1 else "it"}.</span></p>')
     return (
         f'<nav class="rail-wrap" aria-label="{label}">\n'
         f'{lead}\n'
         f'  <button class="rail-arrow prev" type="button" aria-label="Previous {noun}" hidden>\u2039</button>\n'
-        f'  <div class="rail" id="rail-{kind}" data-kind="{kind}" data-anchor="{anchor}" '
+        f'  <div class="rail" id="{rail_id}" data-kind="{kind}" data-anchor="{anchor}" '
         f'role="tablist" aria-label="{label}" tabindex="0">\n'
         '    <span class="rail-end" aria-hidden="true"></span>\n'
         f'{body}\n'
@@ -227,6 +250,7 @@ def fill(src, start, end, html):
 
 LIKES_URL = "https://peel-submit.refineco.workers.dev/packs/likes"
 
+COMMUNITY_HEADING = "From the community"
 COMMUNITY_START = "<!-- community-rail:start -->"
 COMMUNITY_END = "<!-- community-rail:end -->"
 
@@ -244,13 +268,33 @@ def build():
     )
     scenes = [c for c in items if c["scene"]]
 
-    # The packs section is a heading and its rail inside one element, so the "See the sheets"
-    # button (#packs) lands on the heading and not on the rail below it. The scenes section's
-    # heading and note come from build_scenes.py, so only its rail is written here.
+    # The packs are several shelves, not one list: Halloween, Deepavali, then From the makers,
+    # each a heading and a wheel over its own sheets. The grouping is build_sheets.PACKS', read
+    # from the "section" each entry carries -- a pack belongs to the last heading above it --
+    # so the page and the wheels cannot disagree about where a pack sits.
+    shelves, order = {}, []
+    heading = None
+    for entry in PACKS:
+        heading = entry.get("section") or heading
+        shelves.setdefault(heading, []).append(entry["slug"])
+        if heading not in order:
+            order.append(heading)
+    by_slug = {c["slug"]: c for c in packs}
+    # A community pack is in PACKS too but belongs to the community wheel, so it is dropped here
+    # rather than drawn twice.
+    shelves = {h: [by_slug[s] for s in slugs if s in by_slug] for h, slugs in shelves.items()}
+    order = [h for h in order if h and h != COMMUNITY_HEADING and shelves.get(h)]
+
+    # The first shelf is a heading and its rail inside one element with the id #packs, so the
+    # hero's "See what is inside" button lands on the heading and not on the rail below it.
+    # build_sheets.py writes the later shelves' headings and leaves an empty region for each
+    # wheel; the scenes section's heading and note come from build_scenes.py, so only its rail
+    # is written here.
+    first = order[0]
     packs_html = (
         '<section class="rail-section" id="packs" aria-labelledby="packs-h">\n'
-        '<h2 id="packs-h">Sticker packs</h2>\n'
-        f'{rail_html(packs, "packs")}\n'
+        f'<h2 id="packs-h">{first}</h2>\n'
+        f'{rail_html(shelves[first], "packs", label=first)}\n'
         '</section>'
     )
     # Packs people sent in, in a wheel of their own directly under Peel's. Written into the
@@ -259,6 +303,11 @@ def build():
     # submissions published yet.
     src = PAGE.read_text()
     src = fill(src, START, END, packs_html)
+    for name in order[1:]:
+        lead = shelves[name][0]["slug"]
+        src = fill(src, f"<!-- rail-{lead}:start -->", f"<!-- rail-{lead}:end -->",
+                   rail_html(shelves[name], "packs", rail_id=f"rail-{lead}",
+                             anchor=f"shelf-{lead}", label=name))
     src = fill(src, SCENE_START, SCENE_END, rail_html(scenes, "scenes"))
     # The community rail goes where build_sheets.py left room for it: under that section's
     # own heading, directly above the sheets it turns through. The markers are absent on a
@@ -267,7 +316,8 @@ def build():
         src = fill(src, COMMUNITY_START, COMMUNITY_END, rail_html(community, "community"))
     PAGE.write_text(src)
     total_likes = sum(c["likes"] for c in community)
-    print(f"deck: {len(packs)} sticker packs, {len(community)} community "
+    shelf_counts = ", ".join(f"{name} {len(shelves[name])}" for name in order)
+    print(f"deck: {len(packs)} sticker packs ({shelf_counts}), {len(community)} community "
           f"({total_likes} likes), {len(scenes)} scenes")
 
 

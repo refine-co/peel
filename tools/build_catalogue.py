@@ -129,11 +129,15 @@ CATEGORY_BY_ID: dict[str, str] = {
 }
 
 # What leads More fun. The list's own order is the page's order: the app shows categories in the
-# order it first meets them and cards in the order they are listed, so the season's shelf goes
-# first by being first here, and gives the top back by being removed from SHELF_FIRST. For
-# Deepavali the paid hero leads and the free greeting sits third, where the person who came for
-# a free greeting still finds it without the first card being a free one.
-SHELF_FIRST = "festivals"
+# order it first meets them and cards in the order they are listed, so a shelf takes the top by
+# being named first here and gives it back by moving down, with no release either way. Halloween
+# leads while the night is still coming, the cats sit behind it, and the Deepavali shelf comes
+# third -- far enough down that the season is not the first thing in October, near enough that
+# anybody who came for it finds it without hunting. Categories left out of this list follow, in
+# the order the packs happen to be in. For Deepavali the paid hero leads and the free greeting
+# sits third, where the person who came for a free greeting still finds it without the first
+# card being a free one.
+CATEGORY_ORDER = ["halloween", "cats", "festivals"]
 SHELF_ORDER = [
     "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
@@ -374,7 +378,8 @@ def main() -> None:
             print(f"  note: {entry['id']} has no category, so Peel shows it under More")
 
     items.sort(key=lambda e: (
-        0 if e.get("category") == SHELF_FIRST else 1,
+        CATEGORY_ORDER.index(e["category"]) if e.get("category") in CATEGORY_ORDER
+        else len(CATEGORY_ORDER),
         SHELF_ORDER.index(e["id"]) if e["id"] in SHELF_ORDER else len(SHELF_ORDER),
     ))
 
