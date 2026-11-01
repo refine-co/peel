@@ -271,7 +271,7 @@ def build():
     )
     scenes = [c for c in items if c["scene"]]
 
-    # The packs are several shelves, not one list: Halloween, Deepavali, then From the makers,
+    # The packs are several shelves, not one list: Deepavali, Halloween, then From the makers,
     # each a heading and a wheel over its own sheets. The grouping is build_sheets.PACKS', read
     # from the "section" each entry carries -- a pack belongs to the last heading above it --
     # so the page and the wheels cannot disagree about where a pack sits.

@@ -72,7 +72,9 @@ NEEDS_BY_ID: dict[str, int] = {
     "dead-honest": 23, "sir-crow": 23, "just-lurking": 25,
     # The Deepavali shelf needs Peel 2.5.0 (versionCode 50): that build carries their fingerprints
     # and the animated sheet previews and the price on the card that let them sell themselves.
-    "lakshmi": 50, "divine-blessings": 50, "little-diya": 50, "mayil": 50, "kolam-lights": 50,
+    # Little Diya and Kolam Lights came off this list when they went free on 1 November 2026:
+    # a free pack has no fingerprint to recognise, so an older build can have it.
+    "lakshmi": 50, "divine-blessings": 50, "mayil": 50,
     "deepavali-doorstep": 50,
 }
 
@@ -81,9 +83,19 @@ NEEDS_BY_ID: dict[str, int] = {
 # release has to add its fingerprint. Builds before 2.4.1 ignore the flag, which is why the new
 # pack's `needs` must be 25 -- those builds then grey the card instead of importing it free.
 # Dead Honest and Sir Crow are also compiled into the app (FreeContent.PAID_PACKS) and stay so.
+#
+# Taking a pack off this list is not enough on its own, and that is the one thing to know here.
+# The compiled list is consulted first and can only add to the price, never remove it: a build
+# that carries a pack's fingerprint in FreeContent.PAID_PACKS locks it whatever this file says.
+# So Little Diya and Kolam Lights were **reissued** on 1 November 2026 instead. Their manifests
+# carry a `reissue` field, which moves the fingerprint, and an unrecognised pack is free by
+# design -- so every install already out there hands them over for nothing as soon as it
+# refreshes this list, with no release and no update. Their old fingerprints stay in
+# FreeContent.PAID_PACKS, as that list is append-only: they now describe copies this site no
+# longer serves.
 PAID_IDS: set[str] = {
     "dead-honest", "sir-crow",
-    "lakshmi", "divine-blessings", "little-diya", "mayil", "kolam-lights",
+    "lakshmi", "divine-blessings", "mayil",
 }
 
 # Categories. Peel groups packs by these on Home and in More fun. The list travels in the
@@ -130,14 +142,14 @@ CATEGORY_BY_ID: dict[str, str] = {
 
 # What leads More fun. The list's own order is the page's order: the app shows categories in the
 # order it first meets them and cards in the order they are listed, so a shelf takes the top by
-# being named first here and gives it back by moving down, with no release either way. Halloween
-# leads while the night is still coming, the cats sit behind it, and the Deepavali shelf comes
-# third -- far enough down that the season is not the first thing in October, near enough that
-# anybody who came for it finds it without hunting. Categories left out of this list follow, in
-# the order the packs happen to be in. For Deepavali the paid hero leads and the free greeting
-# sits third, where the person who came for a free greeting still finds it without the first
-# card being a free one.
-CATEGORY_ORDER = ["halloween", "cats", "festivals"]
+# being named first here and gives it back by moving down, with no release either way.
+# Deepavali leads from 1 November 2026: Halloween is behind us, the festival is a week out, and
+# the shelf now has two free sheets in it rather than one. Halloween keeps second place rather
+# than going to the back, because its packs are the ones the listing screenshots show, and the
+# cats follow. Categories left out of this list follow, in the order the packs happen to be in.
+# Inside Deepavali the scene leads, then the paid hero, and the free greeting sits fourth, where
+# the person who came for a free greeting still finds it without the first card being a free one.
+CATEGORY_ORDER = ["festivals", "halloween", "cats"]
 SHELF_ORDER = [
     "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
@@ -151,7 +163,9 @@ SHELF_ORDER = [
 # need a host that can check something, and the gate that does hold is in Peel, at import,
 # against the unlock on the phone. This only stops the file being one click or one guess away.
 # A token here is permanent: change one and every install with the old list 404s on that pack
-# until it refreshes.
+# until it refreshes. Which is also why a pack that stops being sold keeps its directory rather
+# than moving back to packs/<id>.peel: Just Lurking, Little Diya and Kolam Lights are all free
+# and all still in here. Nothing is gained by moving the file and a stale list would 404.
 VAULT: dict[str, str] = {
     "dead-honest": "k7qf3xd92m",
     "sir-crow": "b4htz8rn51",

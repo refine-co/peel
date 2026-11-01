@@ -750,22 +750,24 @@ def main():
 
 
 # The order the page shows the packs in, which is not the catalogue's order. Halloween and
-# Deepavali are two sections rather than one "Festive" shelf, Halloween first while the night is
-# still coming; the app's More fun is ordered by build_catalogue.py (CATEGORY_ORDER) and is a
-# separate decision. Inside each section the animated packs come first: a sticker that moves is
+# Deepavali are two sections rather than one "Festive" shelf, and since 1 November 2026 Deepavali
+# is first: Halloween is over and the festival is a week out. The app's More fun is ordered by
+# build_catalogue.py (CATEGORY_ORDER) and is a separate decision, moved the same day for the same
+# reason. Inside each section the animated packs come first: a sticker that moves is
 # the thing a first-time reader did not expect from a free app, and it only does its work if it
 # is on screen before the scrolling stops. The still sheets follow, and they are the larger ones,
 # so nothing is hidden by being second. Anything not listed, such as a pack somebody sent in,
 # goes after these in the order it was found. Sorted in place: build_deck already holds this
 # list.
 PAGE_ORDER = [
+    # Deepavali: animated first. Happy Deepavali is the one sheet that does not move, so it lands
+    # last here even though it is free -- worth a second look if the free greeting is the thing
+    # the page is meant to hand out. Little Diya and Kolam Lights are free as of 1 November 2026
+    # and keep their places: they are animated, and that is what this order is about.
+    "divine-blessings", "lakshmi", "little-diya", "mayil", "kolam-lights", "happy-deepavali",
     # Halloween: animated first.
     "just-lurking", "low-light", "ghost-says", "moth-lights", "dead-honest", "sir-crow",
     "halloween", "halloween-night", "midnight-replies",
-    # Deepavali: animated first. The one free sheet, Happy Deepavali, is also the one that does
-    # not move, so it lands last here -- worth a second look if the free greeting is the thing
-    # the page is meant to hand out.
-    "divine-blessings", "lakshmi", "little-diya", "mayil", "kolam-lights", "happy-deepavali",
     "reactions", "say-it", "oyen-kampung",
 ]
 
