@@ -58,6 +58,15 @@ def peel_import_link(path):
 
 SCENES = [
     {
+        "slug": "first-lamp",
+        "c1": "#5d7a4a", "c2": "#e8a33d",
+        "sub": "26 pieces \u00b7 a family hall at dusk on Deepavali, swept and waiting for its lamps",
+        "blurb": "The floor and the furniture first, then the walls, then what hangs over the "
+                 "door, then the open-house spread, and the lamps last of all. In Peel the "
+                 "flames glow and breathe, the kandil swings, and the room lights up as the "
+                 "last chapter goes down.",
+    },
+    {
         "slug": "deepavali-doorstep",
         "c1": "#0f4c5c", "c2": "#ffb703",
         "sub": "28 pieces \u00b7 a doorstep on the night of Deepavali, from the wall garlands to the lamps and the kolam",

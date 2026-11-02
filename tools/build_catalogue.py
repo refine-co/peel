@@ -76,6 +76,12 @@ NEEDS_BY_ID: dict[str, int] = {
     # a free pack has no fingerprint to recognise, so an older build can have it.
     "lakshmi": 50, "divine-blessings": 50, "mayil": 50,
     "deepavali-doorstep": 50,
+    # First Lamp is free, and 2.5.3 (versionCode 53) is the release that can tell: it is
+    # the first build that reads a scene's price from this list instead of only from the
+    # compiled one. An older build has never heard of the scene, and an unknown scene is
+    # paid, so without this it would offer the thing and then refuse it. Greyed out with
+    # "Update Peel to get this" is the right failure.
+    "first-lamp": 53,
 }
 
 # Packs that are sold. Peel 2.4.1 (versionCode 25) reads `paid` from the fetched list, so a paid
@@ -96,6 +102,12 @@ NEEDS_BY_ID: dict[str, int] = {
 PAID_IDS: set[str] = {
     "dead-honest", "sir-crow",
     "lakshmi", "divine-blessings", "mayil",
+    # The two paid scenes. They were never listed here, because until 2.5.3 the app decided
+    # a scene entirely from FreeContent.SCENES and an unknown scene was paid, so the flag
+    # had nothing to do. 2.5.3 lets the catalogue say a scene is free -- which is what frees
+    # a new scene without a release -- and the price of that is that a paid scene now has to
+    # say so here. Leaving them out would hand them over.
+    "knock-twice", "deepavali-doorstep",
 }
 
 # Categories. Peel groups packs by these on Home and in More fun. The list travels in the
@@ -138,6 +150,7 @@ CATEGORY_BY_ID: dict[str, str] = {
     "mayil": "festivals",
     "kolam-lights": "festivals",
     "deepavali-doorstep": "festivals",
+    "first-lamp": "festivals",
 }
 
 # What leads More fun. The list's own order is the page's order: the app shows categories in the
@@ -151,7 +164,7 @@ CATEGORY_BY_ID: dict[str, str] = {
 # the person who came for a free greeting still finds it without the first card being a free one.
 CATEGORY_ORDER = ["festivals", "halloween", "cats"]
 SHELF_ORDER = [
-    "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
+    "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
 ]
 
@@ -360,7 +373,10 @@ def main() -> None:
         if found is not None and found.parent.name != token:
             raise SystemExit(
                 f"{pack_id} is a paid pack: move it to packs/{token}/ before publishing")
-    for pack_id in PAID_IDS - set(VAULT):
+    # Packs only. A scene is sold by being named in PAID_IDS and nothing else: the .chill files
+    # sit in scenes/ under their own names, there is no unguessable directory for them, and the
+    # gate that holds for a scene is in Peel at import.
+    for pack_id in (PAID_IDS & set(sources)) - set(VAULT):
         raise SystemExit(f"{pack_id} is sold but has no VAULT directory")
     for p in pack_files:
         entry = pack_entry(p)
@@ -383,6 +399,13 @@ def main() -> None:
             inner = json.loads(z.read("scene.json")).get("thumbnail", "thumb.jpg")
         thumb_of(p, inner, THUMBS / f"{entry['id']}.jpg")
         items.append(entry)
+
+    # Written into the bundled floor as well as the overlay, since 2.5.3: the floor is what
+    # the grid shows on first run and when the fetch fails, and a scene with no `paid` on it is
+    # now read as free. Older builds read the field and already agree with it.
+    for entry in items:
+        if entry["id"] in PAID_IDS:
+            entry["paid"] = True
 
     for entry in items:
         category = CATEGORY_BY_ID.get(entry["id"])
