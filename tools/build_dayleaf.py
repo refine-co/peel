@@ -41,6 +41,9 @@ ANIMATED = [
     ("christmas-santa", "Father Christmas", "the lantern glows, the robin hops"),
     ("christmas-gingerbread", "Gingerbread house", "the windows glow, the gingerbread man rocks"),
     ("christmas-tropical", "Christmas in the heat", "the cat breathes, the parrot sways"),
+    # Christmas first, then the rest. These are downloads, not bundled, and move only because
+    # the catalogue gives them a plate and layers (site/dayleaf/fx/<id>/).
+    ("night-market", "Night market", "the cat breathes, the moth bobs, the bulbs twinkle"),
 ]
 
 # The twelve that ship inside the app, in the order DayleafTemplates.kt lists them: the six
@@ -228,10 +231,10 @@ def main() -> None:
     body = HEAD.format(count=total, schema=json.dumps(schema, indent=1, ensure_ascii=False))
     body += '\n<div id="pages"></div>\n'
     body += SECTION.format(
-        anchor="christmas", heading="Christmas, and they move",
-        note="These five are alive. The lights twinkle, each string out of step with itself, "
-             "and something on every page rocks, hops or breathes — the same motion you get "
-             "on the page in Peel, drawn from the same pictures.",
+        anchor="moving", heading="Pages that move",
+        note="These are alive. Lights twinkle, each string out of step with itself, and "
+             "something on every page rocks, hops or breathes — the same motion you get on the "
+             "page in Peel, drawn from the same pictures. Christmas first.",
         tiles="\n".join(MOVING_TILE.format(src=src, still=src.replace(".webp", "-still.webp"),
                                             title=esc(t), how=esc(h),
                                             alt=esc(f"{t}, an animated ready-made page"))

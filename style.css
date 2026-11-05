@@ -1095,4 +1095,4 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
 
 /* Two columns rather than three for these: they are the reason to scroll, and a moving
    picture at 110 px wide is a flicker rather than a puppy. */
-#christmas .tiles { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+#moving .tiles { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
