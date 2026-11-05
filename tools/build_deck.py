@@ -31,6 +31,9 @@ from build_sheets import PACKS           # noqa: E402
 
 SITE = pathlib.Path(__file__).resolve().parent.parent
 PAGE = SITE / "packs.html"
+# The scenes moved to their own page on 6 Nov 2026. Their rail and their structured data are
+# written there; packs.html no longer carries either.
+SCENES_PAGE = SITE / "scenes.html"
 CATALOGUE = SITE / "catalogue.json"
 
 START = "<!-- deck:start -->"
@@ -250,6 +253,8 @@ def fill(src, start, end, html):
 
 LIKES_URL = "https://peel-submit.refineco.workers.dev/packs/likes"
 
+SCENES_SCHEMA_START = "<!-- scenes-schema:start -->"
+SCENES_SCHEMA_END = "<!-- scenes-schema:end -->"
 SCHEMA_START = "<!-- schema:start -->"
 SCHEMA_END = "<!-- schema:end -->"
 
@@ -311,7 +316,6 @@ def build():
         src = fill(src, f"<!-- rail-{lead}:start -->", f"<!-- rail-{lead}:end -->",
                    rail_html(shelves[name], "packs", rail_id=f"rail-{lead}",
                              anchor=f"shelf-{lead}", label=name))
-    src = fill(src, SCENE_START, SCENE_END, rail_html(scenes, "scenes"))
     # The community rail goes where build_sheets.py left room for it: under that section's
     # own heading, directly above the sheets it turns through. The markers are absent on a
     # site with nothing published yet, and fill() then leaves the page alone.
@@ -321,11 +325,13 @@ def build():
     # knows the whole list and its order. Google reads an ItemList to understand that the page
     # is a catalogue of named things rather than one long article, which is what it looks like
     # from 261 stickers of markup. No rating is claimed anywhere: Peel has none.
-    listed = [c for c in items if not c["community"]]
+    # Packs only. A scene is on scenes.html now, and an ItemList whose urls point at
+    # anchors this page does not have is a catalogue describing somebody else's page.
+    listed = [c for c in items if not c["community"] and not c["scene"]]
     schema = {
         "@context": "https://schema.org",
         "@type": "ItemList",
-        "name": "Peel sticker packs and scenes",
+        "name": "Peel sticker packs",
         "numberOfItems": len(listed),
         "itemListElement": [
             {"@type": "ListItem", "position": i + 1,
@@ -338,6 +344,29 @@ def build():
                '<script type="application/ld+json">\n'
                + json.dumps(schema, indent=1, ensure_ascii=False) + "\n</script>")
     PAGE.write_text(src)
+
+    # scenes.html: its rail, and its own ItemList. Written here rather than in
+    # build_scenes.py because this is the file that already builds rails and already knows the
+    # catalogue's titles and order.
+    ssrc = SCENES_PAGE.read_text()
+    ssrc = fill(ssrc, SCENE_START, SCENE_END, rail_html(scenes, "scenes"))
+    scene_schema = {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Peel scenes",
+        "numberOfItems": len(scenes),
+        "itemListElement": [
+            {"@type": "ListItem", "position": i + 1,
+             "url": f"https://peel.refineco.app/scenes.html#{c['slug']}",
+             "name": c["title"]}
+            for i, c in enumerate(scenes)
+        ],
+    }
+    ssrc = fill(ssrc, SCENES_SCHEMA_START, SCENES_SCHEMA_END,
+                '<script type="application/ld+json">\n'
+                + json.dumps(scene_schema, indent=1, ensure_ascii=False) + "\n</script>")
+    SCENES_PAGE.write_text(ssrc)
+
     total_likes = sum(c["likes"] for c in community)
     shelf_counts = ", ".join(f"{name} {len(shelves[name])}" for name in order)
     print(f"deck: {len(packs)} sticker packs ({shelf_counts}), {len(community)} community "

@@ -44,6 +44,15 @@ _community_file = SITE / "community.json"
 COMMUNITY = json.loads(_community_file.read_text()) if _community_file.exists() else {}
 SCENES_DIR = SITE / "scenes"
 
+# Ready-made Dayleaf pages. One .webp each, no archive and no manifest: a template is a
+# picture, and the only thing the app does with it is copy it behind a new page.
+#
+# These are listed in the site overlay and NOT in the bundled floor. The twelve that ship
+# inside the app live in the app's own assets/dayleaf-templates/ and are named in
+# DayleafTemplates.kt; putting them in the floor as well would be a second list of the same
+# pictures, able to disagree with the first.
+TEMPLATES_DIR = SITE / "dayleaf"
+
 # The Android project, which is a separate repo. Written into rather than read from, because the
 # site is where the downloadable files live and so the site is where the truth is.
 ASSETS = pathlib.Path(os.environ.get("PEEL_ASSETS") or (pathlib.Path.home() / "Projects/android-peel/app/src/main/assets"))
@@ -61,7 +70,10 @@ BASE = "https://peel.refineco.app"
 # release; `.chill` arrived with Peel 2.0.0, versionCode 15. This is per kind today because no
 # file yet needs more than its kind's floor -- the day one does, it gets its own number here
 # and every older install greys it out with a reason instead of downloading it and failing.
-NEEDS = {"pack": 1, "scene": 15}
+# Templates arrive with the release that can show them. 2.5.4 is versionCode 54 and is in
+# review without the Dayleaf shelf, so the first build that can open a downloaded template is
+# 55 — and an older phone must be told that rather than shown a tile that does nothing.
+NEEDS = {"pack": 1, "scene": 15, "template": 55}
 
 # One file that needs more than its kind's floor. A paid pack belongs here on the day it is
 # published: FreeContent is compiled into the app, so a build released before the pack existed
@@ -219,6 +231,22 @@ def inline_thumb(path: pathlib.Path, inner: str, alpha: bool) -> str:
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+# A template tile is a third of the sheet's width, not half a phone like a More fun card, so
+# it needs less picture than INLINE_MAX. Forty of them at 192 px put the list at 441 KB
+# against the 512 KB the app accepts, which is too little room for the next pack; at 132 px
+# they are legible at the size they are actually drawn and the list has somewhere to grow.
+TEMPLATE_INLINE_MAX = 132
+
+
+def inline_picture(path: pathlib.Path) -> str:
+    """Like [inline_thumb], for a picture that is a file rather than an archive member."""
+    im = Image.open(path)
+    im.thumbnail((TEMPLATE_INLINE_MAX, TEMPLATE_INLINE_MAX), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.convert("RGB").save(buf, "WEBP", quality=INLINE_QUALITY, method=6)
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
 def pack_entry(path: pathlib.Path) -> dict:
     with zipfile.ZipFile(path) as z:
         raw = z.read("manifest.json")
@@ -260,6 +288,82 @@ def scene_entry(path: pathlib.Path) -> dict:
         # catalogue asserting it. One source of truth, and the gate still fails closed: a scene
         # this file calls free that FreeContent does not know is simply paid.
         "manifestSha256": hashlib.sha256(raw).hexdigest(),
+    }
+
+
+# What each ready-made page is called in the app.
+#
+# Written here rather than derived from the file name, because the file name is an id and a
+# title is English somebody reads: "cat-donut-bed" is not a name for anything. These are not
+# translated — the same is true of every pack title the catalogue carries, since the list is
+# one file served to every language. The twelve bundled templates DO have translated names,
+# because those are string resources in the app.
+#
+# A template with no title here stops the build rather than shipping as its own slug.
+TEMPLATE_TITLES = {
+    "alarm-clock": "Busy day",
+    "autumn": "Autumn",
+    "beach": "Beach",
+    "books-lamp": "Reading",
+    "bubble-tea": "Bubble tea",
+    "burger": "Something good",
+    "bus": "On the way",
+    "cake-slice": "Cake",
+    "camper-van": "Road trip",
+    "cat-donut-bed": "Nap",
+    "chocolate-box": "Date night",
+    "christmas-fairy-lights": "Fairy lights",
+    "christmas-gingerbread": "Gingerbread house",
+    "christmas-santa": "Father Christmas",
+    "christmas-tropical": "Christmas in the heat",
+    "cupcake": "Baking day",
+    "durian": "Fruit season",
+    "family-day": "Family day",
+    "graduation": "Graduation",
+    "hills-trails": "Hills and trails",
+    "laptop": "At the desk",
+    "lazy-weekend": "Lazy weekend",
+    "love-notes": "Love notes",
+    "making-things": "Making things",
+    "music": "Music",
+    "new-baby": "New baby",
+    "new-home": "New home",
+    "new-year": "New year",
+    "night-market": "Night market",
+    "noodle-bowl": "Dinner at home",
+    "open-house": "Open house",
+    "raincoat-duck": "Monsoon",
+    "shiba": "Dog day",
+    "spring": "Spring",
+    "tea-time": "Tea time",
+    "thank-you": "Thank you",
+    "travel": "Travel",
+    "two-bears": "Friends",
+    "wedding": "Wedding",
+    "winged-envelope": "Miss you",
+}
+
+def template_entry(path: pathlib.Path) -> dict:
+    """One ready-made Dayleaf page. No fingerprint: the app reads a template as free."""
+    name = path.stem
+    title = TEMPLATE_TITLES.get(name)
+    if title is None:
+        raise SystemExit(f"{name}: add a title to TEMPLATE_TITLES before publishing it")
+    size = path.stat().st_size
+    # The app fetches a template through PackDownloader.fetchImage, which refuses anything
+    # over MAX_IMAGE_BYTES. Caught here, where it is a re-encode, rather than on a phone,
+    # where it is a tap that does nothing.
+    if size > 256 * 1024:
+        raise SystemExit(f"{name}: {size // 1024} KB is over the 256 KB the app will fetch")
+    return {
+        "id": name,
+        "kind": "template",
+        "title": title,
+        "pieces": 0,
+        "animated": False,
+        "bytes": size,
+        "size": human(size),
+        "file": f"{BASE}/dayleaf/{path.name}",
     }
 
 
@@ -449,6 +553,26 @@ def main() -> None:
                 item["credit"] = sent_in["credit"]
         item["thumb"] = inline_thumb(src, inner, alpha=entry["kind"] == "pack")
         overlay.append(item)
+
+    # Templates, overlay only. They carry their own picture inline like everything else here,
+    # because fetching forty thumbnails one at a time would be forty sockets and would tell the
+    # host who opened the Dayleaf shelf and how often. The twelve bundled ones are deliberately
+    # absent: the app already has those and listing them would make it download a copy.
+    bundled_templates = {
+        "birthday", "good-night", "rainy-day", "sunny-day", "garden", "study",
+        "latte", "cat", "kopitiam", "sprout", "lantern", "christmas-tree",
+    }
+    templates = 0
+    for p in sorted(TEMPLATES_DIR.glob("*.webp")):
+        if p.stem in bundled_templates:
+            raise SystemExit(f"{p.stem} ships inside the app; remove site/dayleaf/{p.name}")
+        entry = template_entry(p)
+        entry["needs"] = NEEDS["template"]
+        entry["thumb"] = inline_picture(p)
+        overlay.append(entry)
+        templates += 1
+    if templates:
+        print(f"  {templates} dayleaf templates")
 
     site_out = SITE / "catalogue.json"
     site_out.write_text(

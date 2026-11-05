@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the scene cards on packs.html.
+"""Build the scene cards on scenes.html.
 
 A scene is not a sheet. A sheet is stickers you peel off and send to someone; a scene is a
 picture with its own stickers taken out of it, and the point is putting them back. So the card
@@ -256,16 +256,20 @@ def main():
         '<!-- scenedeck:start -->\n<!-- scenedeck:end -->\n\n' + "\n\n".join(cards)
     )
 
-    page = SITE / "packs.html"
+    # scenes.html, not packs.html. The scenes moved to a page of their own on 6 Nov 2026:
+    # packs.html was 395 KB of markup before the dayleaf pages were drawn, and three different
+    # products on one scroll meant the newest one was always at the bottom.
+    page = SITE / "scenes.html"
     src = page.read_text()
     if "<!-- scenes:start -->" not in src:
-        raise SystemExit("packs.html has no <!-- scenes:start --> marker")
+        raise SystemExit("scenes.html has no <!-- scenes:start --> marker")
     src = re.sub(
         r"<!-- scenes:start -->.*?<!-- scenes:end -->",
         lambda _: "<!-- scenes:start -->\n" + body + "\n<!-- scenes:end -->",
         src, flags=re.S,
     )
-    # The hero chip counts them, so it cannot be left behind when a scene is added.
+    # The hero chip counts them, so it cannot be left behind when a scene is added. It lives
+    # on this page's own hero now; packs.html no longer mentions scenes at all.
     src = re.sub(
         r'(<span class="chip"><a href="#scenes">)\d+ scenes(</a></span>)',
         lambda m: f"{m.group(1)}{len(cards)} scenes{m.group(2)}",
@@ -274,7 +278,7 @@ def main():
 
     page.write_text(src)
     total = sum(c.count('class="piece') for c in cards)
-    print(f"\npacks.html: {len(cards)} scenes, {total} pieces"
+    print(f"\nscenes.html: {len(cards)} scenes, {total} pieces"
           f"{'' if DOWNLOADS_LIVE else ', downloads held back'}")
 
 

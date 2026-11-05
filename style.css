@@ -161,6 +161,9 @@ a { color: inherit; }
 
 nav a {
   text-decoration: none;
+  /* The row wraps between links, never inside one. With six links a 400 px phone broke
+     "Ready-made pages" after the hyphen and carried "made pages" to the next line. */
+  white-space: nowrap;
   font-size: .93rem;
   padding: .4rem .75rem;
   border-radius: 999px;
@@ -1013,3 +1016,53 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
 .get-peel h2 { margin: 0 0 .4rem; }
 .get-peel p { margin: 0 0 1rem; }
 .get-peel .cta { justify-content: center; }
+
+/* ---------- dayleaf tiles ----------
+   A gallery, not a wheel. A ready-made page is one picture with a blank middle: there is no
+   sticker list to open under it and no board to put back together, so the rail's whole
+   mechanism — a centred card and a section below it — would have nothing to show. A grid is
+   also the only shape that lets somebody scan fifty-two of them.
+
+   `auto-fill` with a 6.9rem floor fits three across a 400 px phone and as many as the width
+   allows after that, so the page needs no breakpoints of its own. Three, not two: at
+   fifty-two pages a two-column grid is twenty-six rows of scrolling, and these are thumbnails
+   to scan rather than pictures to study. */
+
+.tiles-section { margin: 2.4rem 0; }
+.tiles-section h2 { margin-bottom: .2rem; }
+
+.tiles {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.9rem, 1fr));
+  gap: 1rem .9rem;
+}
+
+.tile { display: grid; gap: .45rem; }
+
+.tile img {
+  width: 100%;
+  /* `height: auto` is not a tidy-up, it is what makes the rest of this work. The markup
+     carries width="1008" height="1344" so the grid holds its place before the pictures load,
+     and those attributes are a presentational hint of 1344 CSS pixels: without this the tiles
+     rendered 155 px wide and 1344 px tall, because `aspect-ratio` only applies when one
+     dimension is auto. */
+  height: auto;
+  /* The page's own shape, so a tile that has not loaded still holds its place and the grid
+     does not jump as the gallery fills in. */
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+}
+
+.tile-name {
+  font-family: Fredoka, sans-serif;
+  font-size: .88rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.25;
+}
