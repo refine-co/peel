@@ -241,8 +241,10 @@ def main() -> None:
                         for src, t, h in moving))
     body += SECTION.format(
         anchor="in-app", heading="In the app",
-        note="These twelve are inside Peel already. They are there the first time you open "
-             "Dayleaf, with or without a signal.",
+        # Counted, not written: the bundled Christmas pages sit in the moving section above,
+        # so "twelve" was wrong the day they moved there.
+        note=f"These {len(in_app)} are inside Peel already, and so are the Christmas pages "
+             "above. They are there the first time you open Dayleaf, with or without a signal.",
         tiles=tiles(in_app))
     body += SECTION.format(
         anchor="more", heading="A tap away",
