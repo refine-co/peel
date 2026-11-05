@@ -1,0 +1,42 @@
+{
+ "plate": "plate-9b4d5fbe.webp",
+ "fixtures": [
+  {
+   "file": "lights-0-cf912f63.webp",
+   "pivotX": 0.5,
+   "pivotY": 0.5,
+   "flicker": 0.95,
+   "additive": true
+  },
+  {
+   "file": "lights-1-aaad17d2.webp",
+   "pivotX": 0.5,
+   "pivotY": 0.5,
+   "flicker": 0.95,
+   "additive": true
+  },
+  {
+   "file": "lights-2-740946ac.webp",
+   "pivotX": 0.5,
+   "pivotY": 0.5,
+   "flicker": 0.95,
+   "additive": true
+  },
+  {
+   "file": "piece-cat-d011715e.webp",
+   "pivotX": 0.156,
+   "pivotY": 1.0,
+   "sway": 0.45,
+   "breathe": 0.55,
+   "additive": false
+  },
+  {
+   "file": "piece-moth-9a02c3a8.webp",
+   "pivotX": 0.84,
+   "pivotY": 0.115,
+   "sway": 0.6,
+   "bob": 0.6,
+   "additive": false
+  }
+ ]
+}

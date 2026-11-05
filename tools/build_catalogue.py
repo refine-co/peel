@@ -30,6 +30,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import zipfile
 
 from PIL import Image
@@ -367,6 +368,55 @@ def template_entry(path: pathlib.Path) -> dict:
     }
 
 
+# Moving parts for a downloadable template, written by export_site_fixtures.py in the
+# peel-stickers repo. `file` stays the whole picture, because that is what every older build
+# fetches; `plate` is the same picture with the moving pieces painted out, and the app reads it
+# only together with the layers that fill those holes. Builds before moving pieces ignore both
+# fields, so this needs no `needs` bump.
+TEMPLATE_FX_DIR = TEMPLATES_DIR / "fx"
+# PackDownloader.nameOf: at most 64 characters of letters, digits, '.', '_' and '-', no '..'.
+# RemoteTemplateFixtures.SAFE_ID: the app keys a template's saved layers by its id.
+TEMPLATE_ID = re.compile(r"[a-z0-9][a-z0-9-]{0,63}")
+FIXTURE_NAME = re.compile(r"[A-Za-z0-9_-][A-Za-z0-9._-]{0,58}\.webp")
+FIXTURE_KEYS = ("pivotX", "pivotY", "sway", "bob", "breathe", "drift", "flicker", "additive")
+
+
+def template_motion(name: str) -> dict:
+    d = TEMPLATE_FX_DIR / name
+    spec_file = d / "fixtures.json"
+    if not spec_file.is_file():
+        return {}
+    spec = json.loads(spec_file.read_text())
+    files = [spec["plate"]] + [f["file"] for f in spec["fixtures"]]
+    # The app takes these all or nothing (Catalogue.motionOf): one name or number it refuses
+    # and the whole template is offered still. So the build refuses first, here, loudly.
+    if not TEMPLATE_ID.fullmatch(name):
+        raise SystemExit(f"{name}: a moving template's id must match {TEMPLATE_ID.pattern}")
+    for f in files:
+        if not FIXTURE_NAME.fullmatch(f) or ".." in f:
+            raise SystemExit(f"{name}/{f}: the app only fetches names like {FIXTURE_NAME.pattern}")
+    for f in spec["fixtures"]:
+        for k in ("pivotX", "pivotY", "sway", "bob", "breathe", "drift", "flicker"):
+            v = f.get(k, 0)
+            if not (isinstance(v, (int, float)) and 0 <= v <= 1):
+                raise SystemExit(f"{name}/{f['file']}: {k}={v!r} is outside 0..1, which the app clamps")
+    for f in files:
+        size = (d / f).stat().st_size
+        if size > 256 * 1024:
+            raise SystemExit(f"{name}/{f}: {size // 1024} KB is over the 256 KB the app will fetch")
+    lights = sum(1 for f in spec["fixtures"] if f.get("additive"))
+    if lights > 3 or len(spec["fixtures"]) - lights > 3:
+        raise SystemExit(f"{name}: the app reads at most three lights and three pieces")
+    url = f"{BASE}/dayleaf/fx/{name}"
+    return {
+        "plate": f"{url}/{spec['plate']}",
+        "fixtures": [
+            {"file": f"{url}/{f['file']}", **{k: f[k] for k in FIXTURE_KEYS if k in f}}
+            for f in spec["fixtures"]
+        ],
+    }
+
+
 # A grid cell is never wider than half a phone, so anything past this is bytes in the APK that
 # nobody can see. The scene thumbnails inside the archives are full board pictures — one was
 # 105 KB on its own.
@@ -569,6 +619,7 @@ def main() -> None:
         entry = template_entry(p)
         entry["needs"] = NEEDS["template"]
         entry["thumb"] = inline_picture(p)
+        entry.update(template_motion(p.stem))
         overlay.append(entry)
         templates += 1
     if templates:
