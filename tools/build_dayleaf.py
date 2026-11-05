@@ -29,6 +29,20 @@ SITE = pathlib.Path(__file__).resolve().parent.parent
 PAGE = SITE / "dayleaf.html"
 DIR = SITE / "dayleaf"
 
+# The pages that move, shown first and moving. Rendered by render_previews.py in the
+# peel-stickers repo from the same plate, pieces and light layers the app draws, so the tile
+# on this page and the page in the app cannot disagree about what moves.
+#
+# Only true from the release that carries moving pieces. A 2.5.5 phone that downloads one of
+# these gets the still picture, so this section must not go live before that release does.
+ANIMATED = [
+    ("christmas-fairy-lights", "Fairy lights", "the puppy rocks, the bulbs twinkle"),
+    ("christmas-tree", "Christmas", "the lights twinkle, the robin hops"),
+    ("christmas-santa", "Father Christmas", "the lantern glows, the robin hops"),
+    ("christmas-gingerbread", "Gingerbread house", "the windows glow, the gingerbread man rocks"),
+    ("christmas-tropical", "Christmas in the heat", "the cat breathes, the parrot sways"),
+]
+
 # The twelve that ship inside the app, in the order DayleafTemplates.kt lists them: the six
 # framed ones and then the six shaped ones, which is also roughly plainest-first.
 IN_APP = [
@@ -123,6 +137,20 @@ TILE = """    <li class="tile">
       <span class="tile-name">{title}</span>
     </li>"""
 
+MOVING_TILE = """    <li class="tile moving">
+      <span class="tile-art">
+        <picture>
+          <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
+               less motion is served a still frame instead of the loop. -->
+          <source srcset="{still}" media="(prefers-reduced-motion: reduce)">
+          <img src="{src}" alt="{alt}" width="432" height="576" loading="lazy" decoding="async">
+        </picture>
+        <span class="tile-badge">Animated</span>
+      </span>
+      <span class="tile-name">{title}</span>
+      <span class="tile-how">{how}</span>
+    </li>"""
+
 TAIL = """
 <section class="get-peel" aria-labelledby="get-peel-h">
   <h2 id="get-peel-h">Where these live</h2>
@@ -174,7 +202,18 @@ def main() -> None:
             raise SystemExit(f"{slug}: no display copy at dayleaf/in-app/{slug}.webp")
         in_app.append((f"dayleaf/in-app/{f.name}", title, slug))
 
-    total = len(in_app) + len(downloadable)
+    moving_ids = {slug for slug, _, _ in ANIMATED}
+    moving = []
+    for slug, title, how in ANIMATED:
+        f = DIR / "anim" / f"{slug}.webp"
+        if not f.is_file():
+            raise SystemExit(f"{slug}: no animated tile at dayleaf/anim/{slug}.webp")
+        moving.append((f"dayleaf/anim/{f.name}", title, how))
+    # A moving page appears once, in the moving section, rather than again as a still.
+    in_app = [row for row in in_app if row[2] not in moving_ids]
+    downloadable = [row for row in downloadable if row[2] not in moving_ids]
+
+    total = len(moving) + len(in_app) + len(downloadable)
     schema = {
         "@context": "https://schema.org",
         "@type": "ItemList",
@@ -182,12 +221,21 @@ def main() -> None:
         "numberOfItems": total,
         "itemListElement": [
             {"@type": "ListItem", "position": i + 1, "name": title}
-            for i, (_, title, _) in enumerate(in_app + downloadable)
+            for i, (_, title, _) in enumerate(moving + in_app + downloadable)
         ],
     }
 
     body = HEAD.format(count=total, schema=json.dumps(schema, indent=1, ensure_ascii=False))
     body += '\n<div id="pages"></div>\n'
+    body += SECTION.format(
+        anchor="christmas", heading="Christmas, and they move",
+        note="These five are alive. The lights twinkle, each string out of step with itself, "
+             "and something on every page rocks, hops or breathes — the same motion you get "
+             "on the page in Peel, drawn from the same pictures.",
+        tiles="\n".join(MOVING_TILE.format(src=src, still=src.replace(".webp", "-still.webp"),
+                                            title=esc(t), how=esc(h),
+                                            alt=esc(f"{t}, an animated ready-made page"))
+                        for src, t, h in moving))
     body += SECTION.format(
         anchor="in-app", heading="In the app",
         note="These twelve are inside Peel already. They are there the first time you open "
