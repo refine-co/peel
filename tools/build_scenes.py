@@ -58,6 +58,15 @@ def peel_import_link(path):
 
 SCENES = [
     {
+        "slug": "christmas-eve",
+        "c1": "#7a1f1f", "c2": "#e8b13d",
+        "sub": "13 pieces \u00b7 a Malaysian living room on Christmas Eve, waiting for its tree",
+        "blurb": "The tree first, then the wreath and the stockings, then the presents, the "
+                 "poinsettia and the cookies, then the cat in a Santa hat, and the lights last: "
+                 "three candles, the paper star in the window and the star on top of the tree. "
+                 "In Peel they glow, crickets sing outside and a music box plays.",
+    },
+    {
         "slug": "first-lamp",
         "c1": "#5d7a4a", "c2": "#e8a33d",
         "sub": "26 pieces \u00b7 a family hall at dusk on Deepavali, swept and waiting for its lamps",

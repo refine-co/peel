@@ -95,6 +95,9 @@ NEEDS_BY_ID: dict[str, int] = {
     # paid, so without this it would offer the thing and then refuse it. Greyed out with
     # "Update Peel to get this" is the right failure.
     "first-lamp": 53,
+    # Christmas Eve is free, and for the same reason as First Lamp needs 2.5.3: older builds treat
+    # an unknown scene as sold.
+    "christmas-eve": 53,
 }
 
 # Packs that are sold. Peel 2.4.1 (versionCode 25) reads `paid` from the fetched list, so a paid
@@ -164,6 +167,7 @@ CATEGORY_BY_ID: dict[str, str] = {
     "kolam-lights": "festivals",
     "deepavali-doorstep": "festivals",
     "first-lamp": "festivals",
+    "christmas-eve": "festivals",
 }
 
 # What leads More fun. The list's own order is the page's order: the app shows categories in the
@@ -176,8 +180,9 @@ CATEGORY_BY_ID: dict[str, str] = {
 # Inside Deepavali the scene leads, then the paid hero, and the free greeting sits fourth, where
 # the person who came for a free greeting still finds it without the first card being a free one.
 CATEGORY_ORDER = ["festivals", "halloween", "cats"]
+# Christmas Eve leads from 6 November 2026: Deepavali is behind us and Christmas is seven weeks out.
 SHELF_ORDER = [
-    "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
+    "christmas-eve", "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
 ]
 
