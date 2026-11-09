@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peel for iPhone — tell me if you want it</title>
+<meta name="description" content="Peel is an Android app. There is no iPhone version yet. If you want one, leave your email and you will get one message when there is something to try.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Peel for iPhone — tell me if you want it">
+<meta property="og:description" content="There is no iPhone version of Peel yet. Leave your email if you want one, and you will hear once there is something to try.">
+<meta property="og:url" content="https://peel.refineco.app/ios.html">
+<link rel="canonical" href="https://peel.refineco.app/ios.html">
+<link rel="icon" href="icon/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icon/favicon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon/apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Only what this page adds. Everything else is style.css. */
+  .wait { margin: 1.5rem 0 .5rem; display: flex; flex-wrap: wrap; gap: .6rem; }
+  .wait input {
+    flex: 1 1 15rem; min-width: 0; padding: .85rem 1rem;
+    font: inherit; color: var(--fg); background: var(--card);
+    border: 2px solid var(--line); border-radius: 999px;
+  }
+  .wait input:focus-visible { outline: none; border-color: var(--accent); }
+  .wait button { flex: 0 0 auto; }
+  .said { margin: .4rem 0 0; min-height: 1.5rem; font-weight: 700; }
+  .said[data-tone="bad"] { color: var(--pink); }
+  .said[data-tone="good"] { color: var(--mint); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="row">
+    <a class="brand" href="index.html"><span class="dot"></span>Peel</a>
+    <nav>
+      <a href="index.html">The app</a>
+      <a href="packs.html">Sticker packs</a>
+      <a href="scenes.html">Scenes</a>
+      <a href="dayleaf.html">Ready-made pages</a>
+      <a href="how-to-install.html">How to install</a>
+      <a href="submit.html">Share yours</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap narrow page">
+
+<p class="eyebrow">Peel · iPhone</p>
+<h1>There is no iPhone version of Peel</h1>
+<p class="lede">Peel is an Android app, and today that is the whole of it. If somebody sent you a sticker pack and you could not open it, that is why.</p>
+
+<h2>Should I build one?</h2>
+<p>That is a real question and I do not know the answer yet. Peel is made by one person in Kuala Lumpur, and an iPhone version is months of work on top of the Android one, so I would rather find out whether anyone wants it before spending them.</p>
+<p>So: leave your email. That is the whole vote.</p>
+
+<form class="wait" id="wait" novalidate>
+  <input id="email" type="email" name="email" inputmode="email" autocomplete="email"
+         placeholder="you@example.com" aria-label="Your email address" required>
+  <button class="btn" type="submit">Count me in</button>
+</form>
+<p class="said" id="said" role="status" aria-live="polite"></p>
+
+<h2>What you are agreeing to</h2>
+<ul>
+  <li><strong>No money.</strong> This is not a pre-order and there is nothing to pay. If that ever changes it will be on the App Store, like anything else.</li>
+  <li><strong>One message.</strong> You will hear once, when there is something to try. Not a newsletter.</li>
+  <li><strong>Or you will hear that it is not happening.</strong> If too few people ask, I will write and say so rather than leave you waiting.</li>
+  <li><strong>Your address and nothing else.</strong> No name, no phone number. It is used for that one message and is not sold, shared or added to anything.</li>
+</ul>
+
+<h2>No date, and I am not going to invent one</h2>
+<p>Nothing is written, nothing is in review and there is no Apple developer account yet. Anyone who gives you a date for an app that has not been started is guessing. When there is a build, the people on this list are the first to know.</p>
+
+<h2>Meanwhile</h2>
+<p>If you are on Android, Peel is <a href="https://play.google.com/store/apps/details?id=my.refineco.peel">free on Google Play</a>. If you are not, the <a href="packs.html">sticker packs</a> on this site are plain WhatsApp packs and the <a href="how-to-install.html">how to install</a> page covers getting them in by hand.</p>
+
+</main>
+
+<script>
+/* The waitlist form.
+ *
+ * text/plain on purpose: it keeps this a simple cross-origin request, so the Worker needs no
+ * OPTIONS route. Same trick as the like counts in peel.js, and the same reason.
+ */
+(function () {
+  var form = document.getElementById("wait");
+  var input = document.getElementById("email");
+  var said = document.getElementById("said");
+  if (!form) return;
+
+  // Where this visit came from, so a signup from the share loop is tellable from a signup off
+  // a post. Set by the link, never by the person: ?from=share, ?from=social.
+  var from = new URLSearchParams(location.search).get("from") || "";
+
+  function say(text, tone) {
+    said.textContent = text;
+    said.setAttribute("data-tone", tone);
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var email = input.value.trim();
+    if (!email) { say("Put your email in first.", "bad"); input.focus(); return; }
+
+    var button = form.querySelector("button");
+    button.disabled = true;
+    say("Sending…", "");
+
+    fetch("https://peel-submit.refineco.workers.dev/ios/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ email: email, source: from.slice(0, 32) }),
+    })
+      .then(function (answer) { return answer.json().catch(function () { return null; }); })
+      .then(function (data) {
+        if (data && data.ok) {
+          form.hidden = true;
+          say("You are on the list. You will hear once there is something to try.", "good");
+        } else {
+          say((data && data.error) || "That did not go through. Try again in a minute.", "bad");
+          button.disabled = false;
+        }
+      })
+      .catch(function () {
+        say("That did not go through. Try again in a minute.", "bad");
+        button.disabled = false;
+      });
+  });
+})();
+</script>
+
+</body>
+</html>

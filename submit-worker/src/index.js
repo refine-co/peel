@@ -89,6 +89,7 @@ export default {
       if (pathname === "/packs") return await packs(request, env);
       if (pathname === "/packs/likes") return await packLikes(request, env);
       if (pathname === "/packs/like") return await setPackLike(request, env);
+      if (pathname === "/ios/waitlist") return await iosWaitlist(request, env);
     } catch (e) {
       // Never leak an internal message to a phone. The client turns a 5xx into "could not
       // reach Peel", which is the right thing for somebody to see.
@@ -665,6 +666,73 @@ async function setPackLike(request, env) {
     "SELECT COUNT(*) AS n FROM votes WHERE submission_id = ?"
   ).bind(pack.id).first();
   return Response.json({ slug, likes: count?.n ?? 0, mine: on });
+}
+
+/* ------------------------------------------------------------ the iPhone list */
+
+/** Addresses taken in a day, across everybody. A ceiling, not a per-person limit. */
+const IOS_SIGNUPS_PER_DAY = 500;
+
+/** Longer than this is not an address somebody typed. RFC allows 254; nothing real is near it. */
+const MAX_EMAIL = 254;
+
+/**
+ * Join the iPhone waitlist. `{ email, source }`, and the answer is `{ ok: true }`.
+ *
+ * **This is a waitlist and not a pre-order, and the distinction is the point.** There is no
+ * iOS build, no date and no Apple developer account, so money taken here would be money owed
+ * back. An address answers the only question being asked — whether anybody wants it — and
+ * costs nothing to be wrong about.
+ *
+ * The answer is `ok` whether the address was new or already here. Saying which would turn this
+ * into an oracle for "is this person on the list", which is nobody's business and is free to
+ * avoid: the count comes from the table, not from what a stranger is told.
+ *
+ * Nothing is emailed. The Worker has no provider and no key, the same as everything else here,
+ * so reaching these people is an export and a message sent by hand.
+ */
+export async function iosWaitlist(request, env) {
+  // The website posts this from a browser on another origin, so every answer carries the
+  // header, refusals included — without it the page cannot read its own error and shows
+  // nothing. text/plain on the way in keeps it a simple request with no preflight, which is
+  // what /packs/likes does and why this Worker still needs no OPTIONS route.
+  const cors = { "Access-Control-Allow-Origin": SITE_ORIGIN };
+  const answer = (body, status = 200) => Response.json(body, { status, headers: cors });
+
+  const body = await json(request);
+  const email = field(body, "email").trim().toLowerCase();
+
+  // Shape only. Whether an address can receive mail is not knowable from here, and a stricter
+  // pattern rejects real addresses for no gain: a typo costs one dead row in a list of a few
+  // hundred, while a refused signup costs the signal this whole page exists to collect.
+  if (email.length < 6 || email.length > MAX_EMAIL || !/^[^@\s]+@[^@\s.]+\.[^@\s]+$/.test(email)) {
+    return answer({ error: "That does not look like an email address." }, 400);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const dayAgo = now - 24 * 60 * 60;
+  const today = await env.DB.prepare(
+    "SELECT COUNT(*) AS n FROM ios_waitlist WHERE created_at > ?"
+  ).bind(dayAgo).first();
+  if ((today?.n ?? 0) >= IOS_SIGNUPS_PER_DAY) {
+    // Deliberately not a 429 with a retry hint. A person seeing this is almost certainly not
+    // the cause, and the honest thing is to tell them to come back rather than to explain a
+    // ceiling they did not hit.
+    return answer({ error: "Too many sign-ups today. Please try again tomorrow." }, 503);
+  }
+
+  // Only the three values the question needs. No name, no phone, nothing that would have to
+  // appear in a privacy policy as a new category.
+  const source = field(body, "source").slice(0, 32) || null;
+  const country = request.headers.get("CF-IPCountry") || null;
+
+  // OR IGNORE rather than a check followed by an insert: a second submission of the same
+  // address is one row either way and there is no window between the two for a race.
+  await env.DB.prepare(
+    "INSERT OR IGNORE INTO ios_waitlist (email, created_at, source, country) VALUES (?, ?, ?, ?)"
+  ).bind(email, now, source, country).run();
+
+  return answer({ ok: true });
 }
 
 function refuse(status, error) {
