@@ -92,6 +92,8 @@ NEEDS_BY_ID: dict[str, int] = {
     # The Christmas paid packs, for the same reason as the Deepavali ones: 2.5.0 is the first build
     # that plays a locked pack's sheet and puts the price on its card.
     "cosy-windows": 50, "knitted-friends": 50, "velvet-tartan": 50, "sweet-season": 50,
+    # Ho Ho Oops (9 November 2026), the sixth Christmas pack, for the same reason.
+    "ho-ho-oops": 50,
     # First Lamp is free, and 2.5.3 (versionCode 53) is the release that can tell: it is
     # the first build that reads a scene's price from this list instead of only from the
     # compiled one. An older build has never heard of the scene, and an unknown scene is
@@ -121,7 +123,7 @@ NEEDS_BY_ID: dict[str, int] = {
 PAID_IDS: set[str] = {
     "dead-honest", "sir-crow",
     "lakshmi", "divine-blessings", "mayil",
-    "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
+    "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season", "ho-ho-oops",
     # The two paid scenes. They were never listed here, because until 2.5.3 the app decided
     # a scene entirely from FreeContent.SCENES and an unknown scene was paid, so the flag
     # had nothing to do. 2.5.3 lets the catalogue say a scene is free -- which is what frees
@@ -175,6 +177,7 @@ CATEGORY_BY_ID: dict[str, str] = {
     # Christmas 2026: one free greeting pack and four paid animated packs, 9 November 2026.
     "merry-bright": "festivals",
     "cosy-windows": "festivals",
+    "ho-ho-oops": "festivals",
     "knitted-friends": "festivals",
     "velvet-tartan": "festivals",
     "sweet-season": "festivals",
@@ -194,8 +197,8 @@ CATEGORY_ORDER = ["festivals", "cats", "chat", "cosy", "halloween"]
 # paid packs; Deepavali (8 November) is behind us and follows. Halloween went to the back of
 # CATEGORY_ORDER the same day, behind the year-round shelves.
 SHELF_ORDER = [
-    "christmas-eve", "merry-bright", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
-    "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
+    "christmas-eve", "merry-bright", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan",
+    "sweet-season", "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
 ]
 
@@ -225,6 +228,7 @@ VAULT: dict[str, str] = {
     "knitted-friends": "itxy9f7tsw",
     "velvet-tartan": "3kw1ftjsvc",
     "sweet-season": "md7udw71bs",
+    "ho-ho-oops": "o8pn3ip0sl",
 }
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would

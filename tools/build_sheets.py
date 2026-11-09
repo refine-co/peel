@@ -109,6 +109,15 @@ PACKS = [
         "section": "Christmas",
     },
     {
+        "slug": "ho-ho-oops",
+        "title": "Ho Ho Oops",
+        "spec": None,
+        "c1": "#8a1c24", "c2": "#d9944a",
+        "sub": "18 animated stickers \u00b7 Santa and his gingerbread buddy Ginger, from a stuck chimney to the New Year countdown: Little help?, Food coma, Hello 2027!",
+        "new_until": "2027-01-10",
+        "section": None,
+    },
+    {
         "slug": "cosy-windows",
         "title": "Cosy Windows",
         "spec": None,
@@ -808,7 +817,7 @@ def main():
 # list.
 PAGE_ORDER = [
     # Christmas, from 9 November 2026: the free greeting first, then the paid packs.
-    "merry-bright", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
+    "merry-bright", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
     # Year-round, then the two festivals that are behind us.
     "reactions", "say-it", "oyen-kampung",
     # Halloween: animated first.
