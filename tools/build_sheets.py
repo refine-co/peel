@@ -656,14 +656,11 @@ def in_peel_foot(kind, shelf, paid):
     mark = ('<span class="mark paid">Needs the unlock</span>' if paid
             else '<span class="mark free">Free</span>')
     where = "More fun"
-    note = (
-        '<p class="how">One unlock, once, opens every paid pack and scene. The price is shown in '
-        "Peel by Google Play.</p>"
-    ) if paid else ""
+    # The unlock is explained once, at the top of packs.html and scenes.html, rather than under
+    # every paid card: the "Needs the unlock" mark already says which ones it covers.
     return (
         '  <div class="sheet-foot in-peel">\n'
         f'    <p class="path"><span class="where">In Peel</span> {where} &rarr; {html.escape(shelf)} {mark}</p>\n'
-        f'    {note}\n'
         '  </div>'
     )
 

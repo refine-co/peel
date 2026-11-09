@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Peel for iPhone — tell me if you want it</title>
-<meta name="description" content="Peel is an Android app. There is no iPhone version yet. If you want one, leave your email and you will get one message when there is something to try.">
+<meta name="description" content="Peel turns photos into WhatsApp stickers. It is Android only for now. See what it does, then leave your email if you want it on iPhone.">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Peel for iPhone — tell me if you want it">
-<meta property="og:description" content="There is no iPhone version of Peel yet. Leave your email if you want one, and you will hear once there is something to try.">
+<meta property="og:description" content="See what Peel does, then leave your email if you want it on iPhone.">
 <meta property="og:url" content="https://peel.refineco.app/ios.html">
+<meta property="og:image" content="https://peel.refineco.app/packs/img/merry-bright/sheet.png">
 <link rel="canonical" href="https://peel.refineco.app/ios.html">
 <link rel="icon" href="icon/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="icon/favicon-192.png" sizes="192x192" type="image/png">
@@ -16,10 +17,34 @@
 <link rel="stylesheet" href="style.css">
 <style>
   /* Only what this page adds. Everything else is style.css. */
-  .wait { margin: 1.5rem 0 .5rem; display: flex; flex-wrap: wrap; gap: .6rem; }
+  .ios-hero { text-align: center; padding: 1.5rem 0 .5rem; }
+  .ios-hero h1 { margin-bottom: .4rem; }
+  .cast { width: min(100%, 26rem); height: auto; margin: 1rem auto; display: block; }
+  .strip { display: flex; justify-content: center; gap: .4rem; margin: 1.2rem 0; flex-wrap: wrap; }
+  .strip img { width: clamp(52px, 14vw, 84px); height: auto; filter: drop-shadow(0 4px 6px rgb(0 0 0 / .12)); }
+  .strip img:nth-child(odd) { transform: rotate(-6deg); }
+  .strip img:nth-child(even) { transform: rotate(5deg) translateY(4px); }
+  .ios-hero .cta { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
+  main.page h2 { margin-top: 2.6rem; scroll-margin-top: 5.5rem; }
+  .films { display: grid; gap: .8rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .films video { width: 100%; border-radius: 14px; display: block; background: #16150f; }
+  .films p { margin: .4rem 0 0; font-weight: 700; font-size: .95rem; text-align: center; }
+  .look { display: grid; gap: .8rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 720px) { .look { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .look a { position: relative; display: block; border-radius: 16px; overflow: hidden; text-decoration: none; box-shadow: var(--shadow); transition: transform .15s; }
+  .look a:hover, .look a:focus-visible { transform: translateY(-3px); }
+  .look img { width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+  .look span {
+    position: absolute; left: .5rem; right: .5rem; bottom: .5rem;
+    padding: .45rem .7rem; border-radius: 999px; background: var(--card); color: var(--fg);
+    font-weight: 800; font-size: .95rem; text-align: center;
+  }
+  .ask { margin-top: 2.6rem; padding: 1.4rem; border-radius: 22px; background: var(--card); box-shadow: var(--shadow); text-align: center; scroll-margin-top: 5.5rem; }
+  .ask h2 { margin-top: 0; }
+  .wait { margin: 1rem 0 .5rem; display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
   .wait input {
-    flex: 1 1 15rem; min-width: 0; padding: .85rem 1rem;
-    font: inherit; color: var(--fg); background: var(--card);
+    flex: 1 1 15rem; min-width: 0; max-width: 24rem; padding: .85rem 1rem;
+    font: inherit; color: var(--fg); background: var(--bg);
     border: 2px solid var(--line); border-radius: 999px;
   }
   .wait input:focus-visible { outline: none; border-color: var(--accent); }
@@ -27,6 +52,8 @@
   .said { margin: .4rem 0 0; min-height: 1.5rem; font-weight: 700; }
   .said[data-tone="bad"] { color: var(--pink); }
   .said[data-tone="good"] { color: var(--mint); }
+  .ask .chips { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: .6rem; }
+  @media (max-width: 480px) { .films { grid-template-columns: 1fr 1fr; } .films > div:last-child { grid-column: span 2; max-width: 50%; justify-self: center; } }
 </style>
 </head>
 <body>
@@ -35,46 +62,82 @@
   <div class="row">
     <a class="brand" href="index.html"><span class="dot"></span>Peel</a>
     <nav>
-      <a href="index.html">The app</a>
-      <a href="packs.html">Sticker packs</a>
+      <a href="index.html">Home</a>
+      <a href="packs.html">Packs</a>
       <a href="scenes.html">Scenes</a>
-      <a href="dayleaf.html">Ready-made pages</a>
-      <a href="how-to-install.html">How to install</a>
-      <a href="submit.html">Share yours</a>
+      <a href="dayleaf.html">Pages</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap narrow page">
 
-<p class="eyebrow">Peel · iPhone</p>
-<h1>There is no iPhone version of Peel</h1>
-<p class="lede">Peel is an Android app, and today that is the whole of it. If somebody sent you a sticker pack and you could not open it, that is why.</p>
+<section class="ios-hero">
+  <p class="eyebrow">Peel · iPhone</p>
+  <h1>Stickers that actually move</h1>
+  <p class="lede">243 animated stickers, plus your own photos. Android only, for now.</p>
+  <div class="hop-strip" aria-hidden="true">
+    <img src="packs/img/ho-ho-oops/stickers/01.webp" alt="" width="256" height="256">
+    <img src="packs/img/knitted-friends/stickers/03.webp" alt="" width="256" height="256">
+    <img src="packs/img/reactions/stickers/03.webp" alt="" width="256" height="256">
+    <img src="packs/img/cosy-windows/stickers/02.webp" alt="" width="256" height="256">
+    <img src="packs/img/sir-crow/stickers/01.webp" alt="" width="256" height="256">
+    <img src="packs/img/just-lurking/stickers/01.webp" alt="" width="256" height="256">
+  </div>
+  <img class="cast" src="art/hero-cast.webp" width="1000" height="822" alt="Peel's cartoon cast: a tabby holding a photo of itself turned into a sticker, with a ghost, a black cat, a frog, a duck and an octopus">
+  <div class="cta">
+    <a class="btn" href="#see">See what it does</a>
+    <a class="btn ghost" href="#ask">I want it on iPhone</a>
+  </div>
+</section>
 
-<h2>Should I build one?</h2>
-<p>That is a real question and I do not know the answer yet. Peel is made by one person in Kuala Lumpur, and an iPhone version is months of work on top of the Android one, so I would rather find out whether anyone wants it before spending them.</p>
-<p>So: leave your email. That is the whole vote.</p>
+<h2 id="see">What Peel does</h2>
+<div class="films">
+  <div>
+    <video src="video/photo-v2.mp4" poster="video/photo-v2.jpg" controls playsinline preload="none"></video>
+    <p>12 photos, 12 stickers</p>
+  </div>
+  <div>
+    <video src="video/animated-v2.mp4" poster="video/animated-v2.jpg" controls playsinline preload="none"></video>
+    <p>Video to moving sticker</p>
+  </div>
+  <div>
+    <video src="video/text-v2.mp4" poster="video/text-v2.jpg" controls playsinline preload="none"></video>
+    <p>30 text stickers, 1 tap</p>
+  </div>
+</div>
 
-<form class="wait" id="wait" novalidate>
-  <input id="email" type="email" name="email" inputmode="email" autocomplete="email"
-         placeholder="you@example.com" aria-label="Your email address" required>
-  <button class="btn" type="submit">Count me in</button>
-</form>
-<p class="said" id="said" role="status" aria-live="polite"></p>
+<h2>Have a look around</h2>
+<div class="look">
+  <a href="packs.html"><img src="art/tile-packs.webp" width="480" height="600" loading="lazy" alt="A sheet of Christmas stickers"><span>Sticker packs</span></a>
+  <a href="scenes.html"><img src="art/tile-scenes.webp" width="480" height="600" loading="lazy" alt="A Christmas market scene, half put back together"><span>Scenes</span></a>
+  <a href="dayleaf.html"><img src="art/tile-pages.webp" width="480" height="600" loading="lazy" alt="A Christmas page made in Peel: stickers and the line Tree is up! Mochi helped, sort of"><span>Ready-made pages</span></a>
+  <a href="index.html"><img src="art/tile-app.webp" width="480" height="600" loading="lazy" alt="Peel's editor turning a cat photo into an OK lah sticker"><span>The app</span></a>
+</div>
 
-<h2>What you are agreeing to</h2>
-<ul>
-  <li><strong>No money.</strong> This is not a pre-order and there is nothing to pay. If that ever changes it will be on the App Store, like anything else.</li>
-  <li><strong>One message.</strong> You will hear once, when there is something to try. Not a newsletter.</li>
-  <li><strong>Or you will hear that it is not happening.</strong> If too few people ask, I will write and say so rather than leave you waiting.</li>
-  <li><strong>Your address and nothing else.</strong> No name, no phone number. It is used for that one message and is not sold, shared or added to anything.</li>
-</ul>
+<section class="ask" id="ask">
+  <h2>Want it on iPhone?</h2>
+  <p class="note">Leave your email. Enough asks, and I build it.</p>
+  <form class="wait" id="wait" novalidate>
+    <input id="email" type="email" name="email" inputmode="email" autocomplete="email"
+           placeholder="you@example.com" aria-label="Your email address" required>
+    <button class="btn" type="submit">Count me in</button>
+  </form>
+  <p class="said" id="said" role="status" aria-live="polite"></p>
+  <div class="chips">
+    <span class="chip">No money</span>
+    <span class="chip">One email, when it's ready</span>
+    <span class="chip">Email only, never shared</span>
+  </div>
+  <p class="note">No date yet. If too few ask, you'll hear that too.</p>
+</section>
 
-<h2>No date, and I am not going to invent one</h2>
-<p>Nothing is written, nothing is in review and there is no Apple developer account yet. Anyone who gives you a date for an app that has not been started is guessing. When there is a build, the people on this list are the first to know.</p>
+<p class="note" style="text-align:center;margin-top:2rem">On Android? <a href="https://play.google.com/store/apps/details?id=my.refineco.peel">Peel is free on Google Play</a>.</p>
 
-<h2>Meanwhile</h2>
-<p>If you are on Android, Peel is <a href="https://play.google.com/store/apps/details?id=my.refineco.peel">free on Google Play</a>. If you are not, the <a href="packs.html">sticker packs</a> on this site are plain WhatsApp packs and the <a href="how-to-install.html">how to install</a> page covers getting them in by hand.</p>
+
+<footer>
+<a href="how-to-install.html">How to use</a> · <a href="submit.html">Share your pack</a> · <a href="ios.html">iPhone</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="delete-account.html">Delete your account</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a>
+</footer>
 
 </main>
 
@@ -91,8 +154,14 @@
   if (!form) return;
 
   // Where this visit came from, so a signup from the share loop is tellable from a signup off
-  // a post. Set by the link, never by the person: ?from=share, ?from=social.
+  // a post. Set by the link, never by the person: ?from=share, ?from=social. The page now
+  // sends visitors off to browse the packs and scenes first, so the tag is kept for the tab's
+  // session too; otherwise someone who looks around and comes back signs up untagged.
   var from = new URLSearchParams(location.search).get("from") || "";
+  try {
+    if (from) sessionStorage.setItem("peel-ios-from", from);
+    else from = sessionStorage.getItem("peel-ios-from") || "";
+  } catch (e) { /* storage blocked: the URL tag alone still works */ }
 
   function say(text, tone) {
     said.textContent = text;
@@ -117,7 +186,7 @@
       .then(function (data) {
         if (data && data.ok) {
           form.hidden = true;
-          say("You are on the list. You will hear once there is something to try.", "good");
+          say("You're on the list. You'll hear once there's something to try.", "good");
         } else {
           say((data && data.error) || "That did not go through. Try again in a minute.", "bad");
           button.disabled = false;

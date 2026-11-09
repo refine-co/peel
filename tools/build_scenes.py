@@ -64,7 +64,7 @@ SCENES = [
         "blurb": "The tree first, then the wreath and the stockings, then the presents, the "
                  "poinsettia and the cookies, then the cat in a Santa hat, and the lights last: "
                  "three candles, the paper star in the window and the star on top of the tree. "
-                 "In Peel they glow, crickets sing outside and a music box plays.",
+                 "In Peel the lights glow, crickets sing outside and a music box plays.",
     },
     # Christmas 2026, six paid scenes (9 Nov): one living moment each, cut out of one picture.
     {
@@ -174,12 +174,7 @@ SCENE_ORDER = ["christmas-eve", "christmas-market", "aurora-cabin", "santas-work
                "first-lamp", "deepavali-doorstep"]
 SCENES.sort(key=lambda s: SCENE_ORDER.index(s["slug"]) if s["slug"] in SCENE_ORDER else len(SCENE_ORDER))
 
-SECTION_INTRO = (
-    "A scene is a picture with its own stickers lifted out of it. You get the empty place and "
-    "the things that belong in it, and you put them back — the far ones first, so the near ones "
-    "land on top. Tap a piece below to put it down, or press <strong>Fill it in</strong> and "
-    "watch the picture come back."
-)
+SECTION_INTRO = "Tap a piece to put it back, or press <strong>Fill it in</strong>."
 
 # A scene whose stickers carry no `home` is not a puzzle: nothing has a place to go back to, so
 # the card shows the picture and the stickers and says so, rather than faking a fill.
@@ -275,18 +270,23 @@ def scene_html(scene, manifest, size):
     # fetches the scene from Chill's More scenes itself; see build_sheets.in_peel_foot.
     foot = in_peel_foot("scene", "Chill scenes", bool(scene.get("paid")))
 
+    # Yow, 9 Nov 2026: "less words, more picture". The back-to-front building order stays in
+    # the data (it documents how each scene was cut) but the page shows only what Peel adds to
+    # the picture, its sound and light, which is the one thing a still board cannot show.
+    sound = scene["blurb"][scene["blurb"].find("In Peel"):] if "In Peel" in scene["blurb"] else ""
+    blurb = f'    <p class="scene-blurb">{sound}</p>\n' if sound else ""
+
     return f"""<section class="scene" id="{slug}" style="--c1:{scene['c1']};--c2:{scene['c2']}">
   <div class="sheet-head">
     <h3 class="sheet-title">{html.escape(manifest['name'])}{badge}</h3>
     <p class="sheet-sub">{scene['sub']}</p>
   </div>
   <div class="scene-body">
-    <div class="board" aria-hidden="true">
+{tools}    <div class="board" aria-hidden="true">
       <img class="plate" src="scenes/img/{slug}/board.jpg" alt="" width="{bw}" height="{bh}" loading="lazy" decoding="async">
 {ghosts}
     </div>
-    <p class="scene-blurb">{scene['blurb']}</p>
-{tools}    <div class="tray">
+{blurb}    <div class="tray">
 {pieces}
     </div>
   </div>

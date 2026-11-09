@@ -91,12 +91,10 @@ HEAD = """<!doctype html>
   <div class="row">
     <a class="brand" href="index.html"><span class="dot"></span>Peel</a>
     <nav>
-      <a href="index.html">The app</a>
-      <a href="packs.html">Sticker packs</a>
+      <a href="index.html">Home</a>
+      <a href="packs.html">Packs</a>
       <a href="scenes.html">Scenes</a>
-      <a href="dayleaf.html" aria-current="page">Ready-made pages</a>
-      <a href="how-to-install.html">How to install</a>
-      <a href="submit.html">Share yours</a>
+      <a href="dayleaf.html" aria-current="page">Pages</a>
     </nav>
   </div>
 </header>
@@ -107,10 +105,7 @@ HEAD = """<!doctype html>
   <div>
     <p class="eyebrow">Dayleaf</p>
     <h1>A page that is<br><span class="wave">already somewhere.</span></h1>
-    <p class="lede">A dayleaf is a page you peel stickers onto — no writing, no account, nothing
-      leaves your phone. These {count} are drawn with a border and a blank middle, so the page is
-      somewhere before you put anything on it. Open <strong>Dayleaf</strong> in Peel, tap
-      <strong>New dayleaf</strong>, and pick one.</p>
+    <p class="lede">Pick a page, peel stickers onto it.</p>
     <div class="cta">
       <a class="btn" href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get Peel on Google Play</a>
       <a class="btn ghost" href="#pages">See all {count}</a>
@@ -125,6 +120,24 @@ HEAD = """<!doctype html>
   <div class="hero-art">
     <img class="phone-shot" src="dayleaf/app/dayleaf-page.webp" width="660" height="1332"
       alt="A dayleaf open in Peel: a Christmas page with a cat sticker, a speech bubble and a written line, the sticker tray below" decoding="async">
+  </div>
+</section>
+"""
+
+# Three pages actually made in Peel on a phone (S22, Play build, 9 Nov 2026), so a visitor sees
+# what a dayleaf turns into rather than only the empty backgrounds. Yow asked for them to tell a
+# story; Mochi is the puppy drawn on the Fairy lights page, carried through as a sticker.
+STORY = """
+<section class="story" aria-labelledby="story-h">
+  <h2 id="story-h">One December, three pages</h2>
+  <p class="note">Made in Peel: a page, a few stickers, one line.</p>
+  <div class="story-pages">
+    <figure><img src="dayleaf/examples/story-1.webp" width="774" height="1082" loading="lazy" decoding="async"
+      alt="A fairy-lights page with Merry Christmas, a bear, a reindeer and Ho Ho Ho stickers, and the line: Tree is up! Mochi helped, sort of"><figcaption>The tree</figcaption></figure>
+    <figure><img src="dayleaf/examples/story-2.webp" width="774" height="1082" loading="lazy" decoding="async"
+      alt="A gingerbread-house page with a gingerbread man, a fox with cocoa and a puppy in lights, and the line: Baked with Grandma. Mochi ate the roof"><figcaption>The baking</figcaption></figure>
+    <figure><img src="dayleaf/examples/story-3.webp" width="774" height="1082" loading="lazy" decoding="async"
+      alt="A tropical Christmas page with Let it snow, a puppy and an owl in earmuffs, and the line: 33 degrees in KL. Mochi still wants snow"><figcaption>The heat</figcaption></figure>
   </div>
 </section>
 """
@@ -161,8 +174,7 @@ MOVING_TILE = """    <li class="tile moving">
 TAIL = """
 <section class="get-peel" aria-labelledby="get-peel-h">
   <h2 id="get-peel-h">Where these live</h2>
-  <p>In Peel, open <strong>Dayleaf</strong> and tap <strong>New dayleaf</strong>. The ready-made
-    pages are under <strong>Ready-made</strong>, and your own photos are the row above them.</p>
+  <p>Peel → <strong>Dayleaf</strong> → <strong>New dayleaf</strong> → <strong>Ready-made</strong>.</p>
   <div class="cta">
     <a class="btn" href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get Peel on Google Play</a>
     <a class="btn ghost" href="packs.html">Sticker packs to put on them</a>
@@ -170,7 +182,7 @@ TAIL = """
 </section>
 
 <footer>
-<a href="index.html">Peel</a> · <a href="privacy.html">Privacy policy</a> · <a href="delete-account.html">Delete your account</a> · <a href="terms.html">Terms of use</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a>
+<a href="how-to-install.html">How to use</a> · <a href="submit.html">Share your pack</a> · <a href="ios.html">iPhone</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="delete-account.html">Delete your account</a> · <a href="mailto:refine.co.my@gmail.com">Contact</a>
 </footer>
 
 </main>
@@ -233,12 +245,11 @@ def main() -> None:
     }
 
     body = HEAD.format(count=total, schema=json.dumps(schema, indent=1, ensure_ascii=False))
+    body += STORY
     body += '\n<div id="pages"></div>\n'
     body += SECTION.format(
         anchor="moving", heading="Pages that move",
-        note="These are alive. Lights twinkle, each string out of step with itself, and "
-             "something on every page rocks, hops or breathes — the same motion you get on the "
-             "page in Peel, drawn from the same pictures. Christmas first.",
+        note="Lights twinkle, cats breathe. Christmas first.",
         tiles="\n".join(MOVING_TILE.format(src=src, still=src.replace(".webp", "-still.webp"),
                                             title=esc(t), how=esc(h),
                                             alt=esc(f"{t}, an animated ready-made page"))
@@ -247,13 +258,11 @@ def main() -> None:
         anchor="in-app", heading="In the app",
         # Counted, not written: the bundled Christmas pages sit in the moving section above,
         # so "twelve" was wrong the day they moved there.
-        note=f"These {len(in_app)} are inside Peel already, and so are the Christmas pages "
-             "above. They are there the first time you open Dayleaf, with or without a signal.",
+        note=f"{len(in_app)} pages, ready offline.",
         tiles=tiles(in_app))
     body += SECTION.format(
         anchor="more", heading="A tap away",
-        note=f"Another {len(downloadable)} that come down when you tap one. They are free, and "
-             "the page is yours once it is made — deleting the app's cache cannot take it back.",
+        note=f"{len(downloadable)} more, free, one tap to download.",
         tiles=tiles(downloadable))
     body += TAIL
 
