@@ -96,8 +96,55 @@ UNLOCK_NOTE = ("This one needs Peel unlocked \u2014 a single purchase, once, tha
                "that owns the unlock, and is not handed out from this page.")
 
 PACKS = [
-    # The Deepavali shelf leads, hero first (see build_catalogue.SHELF_ORDER). Taken off the front
-    # again after the festival by moving these below the Halloween packs.
+    # Christmas 2026 leads from 9 November: one free greeting pack, then four paid animated packs.
+    # Every sticker moves -- the light, the snow and the steam inside the picture -- which is the
+    # thing no still Christmas sticker set on Pinterest has.
+    {
+        "slug": "merry-bright",
+        "title": "Merry & Bright",
+        "spec": None,
+        "c1": "#7a1222", "c2": "#f2c14e",
+        "sub": "16 animated stickers \u00b7 greetings whose bulbs twinkle and letters shine: Merry Christmas, Sending hugs, Cheers to 2027!",
+        "new_until": "2026-12-26",
+        "section": "Christmas",
+    },
+    {
+        "slug": "cosy-windows",
+        "title": "Cosy Windows",
+        "spec": None,
+        "c1": "#5a1420", "c2": "#ffcf6e",
+        "sub": "16 animated stickers \u00b7 a lit window and a little animal inside: the fire flickers, the cocoa steams, the snow falls",
+        "new_until": "2026-12-26",
+        "section": None,
+    },
+    {
+        "slug": "knitted-friends",
+        "title": "Knitted Friends",
+        "spec": None,
+        "c1": "#8e2433", "c2": "#e9d8b8",
+        "sub": "16 animated stickers \u00b7 crochet animals in Christmas jumpers, squishy and bouncing: All lit up, Cocoa time, Brrr",
+        "new_until": "2026-12-26",
+        "section": None,
+    },
+    {
+        "slug": "velvet-tartan",
+        "title": "Velvet & Tartan",
+        "spec": None,
+        "c1": "#3b0f1a", "c2": "#c9a14a",
+        "sub": "16 animated stickers \u00b7 a classic Christmas in tartan, velvet and brass: the bells swing, the candle flickers",
+        "new_until": "2026-12-26",
+        "section": None,
+    },
+    {
+        "slug": "sweet-season",
+        "title": "Sweet Season",
+        "spec": None,
+        "c1": "#b3263e", "c2": "#ffd6de",
+        "sub": "16 animated stickers \u00b7 gingerbread, peppermint and cocoa: the windows glow, the lollipop spins, the train puffs",
+        "new_until": "2026-12-26",
+        "section": None,
+    },
+    # The Deepavali shelf. It led from 1 November; since 9 November it sits at the back of the page.
     {
         "slug": "divine-blessings",
         "title": "Divine Blessings",
@@ -760,15 +807,15 @@ def main():
 # goes after these in the order it was found. Sorted in place: build_deck already holds this
 # list.
 PAGE_ORDER = [
-    # Deepavali: animated first. Happy Deepavali is the one sheet that does not move, so it lands
-    # last here even though it is free -- worth a second look if the free greeting is the thing
-    # the page is meant to hand out. Little Diya and Kolam Lights are free as of 1 November 2026
-    # and keep their places: they are animated, and that is what this order is about.
-    "divine-blessings", "lakshmi", "little-diya", "mayil", "kolam-lights", "happy-deepavali",
+    # Christmas, from 9 November 2026: the free greeting first, then the paid packs.
+    "merry-bright", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
+    # Year-round, then the two festivals that are behind us.
+    "reactions", "say-it", "oyen-kampung",
     # Halloween: animated first.
     "just-lurking", "low-light", "ghost-says", "moth-lights", "dead-honest", "sir-crow",
     "halloween", "halloween-night", "midnight-replies",
-    "reactions", "say-it", "oyen-kampung",
+    # Deepavali: animated first.
+    "divine-blessings", "lakshmi", "little-diya", "mayil", "kolam-lights", "happy-deepavali",
 ]
 
 

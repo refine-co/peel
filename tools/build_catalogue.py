@@ -89,6 +89,9 @@ NEEDS_BY_ID: dict[str, int] = {
     # a free pack has no fingerprint to recognise, so an older build can have it.
     "lakshmi": 50, "divine-blessings": 50, "mayil": 50,
     "deepavali-doorstep": 50,
+    # The Christmas paid packs, for the same reason as the Deepavali ones: 2.5.0 is the first build
+    # that plays a locked pack's sheet and puts the price on its card.
+    "cosy-windows": 50, "knitted-friends": 50, "velvet-tartan": 50, "sweet-season": 50,
     # First Lamp is free, and 2.5.3 (versionCode 53) is the release that can tell: it is
     # the first build that reads a scene's price from this list instead of only from the
     # compiled one. An older build has never heard of the scene, and an unknown scene is
@@ -118,6 +121,7 @@ NEEDS_BY_ID: dict[str, int] = {
 PAID_IDS: set[str] = {
     "dead-honest", "sir-crow",
     "lakshmi", "divine-blessings", "mayil",
+    "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
     # The two paid scenes. They were never listed here, because until 2.5.3 the app decided
     # a scene entirely from FreeContent.SCENES and an unknown scene was paid, so the flag
     # had nothing to do. 2.5.3 lets the catalogue say a scene is free -- which is what frees
@@ -168,6 +172,12 @@ CATEGORY_BY_ID: dict[str, str] = {
     "deepavali-doorstep": "festivals",
     "first-lamp": "festivals",
     "christmas-eve": "festivals",
+    # Christmas 2026: one free greeting pack and four paid animated packs, 9 November 2026.
+    "merry-bright": "festivals",
+    "cosy-windows": "festivals",
+    "knitted-friends": "festivals",
+    "velvet-tartan": "festivals",
+    "sweet-season": "festivals",
 }
 
 # What leads More fun. The list's own order is the page's order: the app shows categories in the
@@ -179,10 +189,13 @@ CATEGORY_BY_ID: dict[str, str] = {
 # cats follow. Categories left out of this list follow, in the order the packs happen to be in.
 # Inside Deepavali the scene leads, then the paid hero, and the free greeting sits fourth, where
 # the person who came for a free greeting still finds it without the first card being a free one.
-CATEGORY_ORDER = ["festivals", "halloween", "cats"]
-# Christmas Eve leads from 6 November 2026: Deepavali is behind us and Christmas is seven weeks out.
+CATEGORY_ORDER = ["festivals", "cats", "chat", "cosy", "halloween"]
+# Christmas leads from 9 November 2026: the free scene, then the free greeting pack, then the four
+# paid packs; Deepavali (8 November) is behind us and follows. Halloween went to the back of
+# CATEGORY_ORDER the same day, behind the year-round shelves.
 SHELF_ORDER = [
-    "christmas-eve", "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
+    "christmas-eve", "merry-bright", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
+    "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
 ]
 
@@ -207,6 +220,11 @@ VAULT: dict[str, str] = {
     "little-diya": "mxacof091w",
     "mayil": "0sxrvxrdjl",
     "kolam-lights": "lvt40sbtfy",
+    # Christmas 2026. Permanent once published.
+    "cosy-windows": "qx85gxsztu",
+    "knitted-friends": "itxy9f7tsw",
+    "velvet-tartan": "3kw1ftjsvc",
+    "sweet-season": "md7udw71bs",
 }
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would

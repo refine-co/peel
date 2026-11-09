@@ -124,8 +124,10 @@ SCENES = [
     },
 ]
 
-# The page opens on the Halloween scene, then the Deepavali one; the rest keep the order above.
-SCENE_ORDER = ["knock-twice", "deepavali-doorstep"]
+# From 9 November 2026 the page opens on Christmas Eve (free), then the year-round scenes; the
+# Halloween and Deepavali scenes, both behind us, go last.
+SCENE_ORDER = ["christmas-eve", "village-night", "lantern-alley", "firefly-jar", "knock-twice",
+               "first-lamp", "deepavali-doorstep"]
 SCENES.sort(key=lambda s: SCENE_ORDER.index(s["slug"]) if s["slug"] in SCENE_ORDER else len(SCENE_ORDER))
 
 SECTION_INTRO = (
