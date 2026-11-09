@@ -103,6 +103,13 @@ NEEDS_BY_ID: dict[str, int] = {
     # Christmas Eve is free, and for the same reason as First Lamp needs 2.5.3: older builds treat
     # an unknown scene as sold.
     "christmas-eve": 53,
+    # The six paid Christmas scenes: 2.5.0 is the first build that puts a scene's price on its card.
+    "christmas-market": 50,
+    "aurora-cabin": 50,
+    "santas-workshop": 50,
+    "last-tram-home": 50,
+    "gingerbread-kitchen": 50,
+    "rooftop-sleigh": 50,
 }
 
 # Packs that are sold. Peel 2.4.1 (versionCode 25) reads `paid` from the fetched list, so a paid
@@ -130,6 +137,8 @@ PAID_IDS: set[str] = {
     # a new scene without a release -- and the price of that is that a paid scene now has to
     # say so here. Leaving them out would hand them over.
     "knock-twice", "deepavali-doorstep",
+    # Christmas 2026, six paid scenes (9 Nov). Named here and nowhere else: that is what sells a scene.
+    "christmas-market", "aurora-cabin", "santas-workshop", "last-tram-home", "gingerbread-kitchen", "rooftop-sleigh",
 }
 
 # Categories. Peel groups packs by these on Home and in More fun. The list travels in the
@@ -174,6 +183,12 @@ CATEGORY_BY_ID: dict[str, str] = {
     "deepavali-doorstep": "festivals",
     "first-lamp": "festivals",
     "christmas-eve": "festivals",
+    "christmas-market": "festivals",
+    "aurora-cabin": "festivals",
+    "santas-workshop": "festivals",
+    "last-tram-home": "festivals",
+    "gingerbread-kitchen": "festivals",
+    "rooftop-sleigh": "festivals",
     # Christmas 2026: one free greeting pack and four paid animated packs, 9 November 2026.
     "merry-bright": "festivals",
     "cosy-windows": "festivals",
@@ -197,7 +212,8 @@ CATEGORY_ORDER = ["festivals", "cats", "chat", "cosy", "halloween"]
 # paid packs; Deepavali (8 November) is behind us and follows. Halloween went to the back of
 # CATEGORY_ORDER the same day, behind the year-round shelves.
 SHELF_ORDER = [
-    "christmas-eve", "merry-bright", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan",
+    "christmas-eve", "christmas-market", "aurora-cabin", "santas-workshop", "last-tram-home", "gingerbread-kitchen", "rooftop-sleigh",
+    "merry-bright", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan",
     "sweet-season", "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
 ]

@@ -66,6 +66,49 @@ SCENES = [
                  "three candles, the paper star in the window and the star on top of the tree. "
                  "In Peel they glow, crickets sing outside and a music box plays.",
     },
+    # Christmas 2026, six paid scenes (9 Nov): one living moment each, cut out of one picture.
+    {
+        "slug": "christmas-market",
+        "c1": "#1d2b5c", "c2": "#f2b544",
+        "sub": "17 pieces · a snowy market square at night, cocoa, chestnuts and a snowman half built",
+        "blurb": "The houses and the big tree first, then the stalls and the carousel, then the people, and the robin, the lantern and the sleeping cat last. In Peel the tree and the lantern glow, the crowd murmurs and sleigh bells pass.",
+        "paid": True,
+    },
+    {
+        "slug": "aurora-cabin",
+        "c1": "#0e2a3d", "c2": "#7be0b0",
+        "sub": "20 pieces · a log cabin under the northern lights, and everyone looking up",
+        "blurb": "The cabin first, then the family on the porch and in the snow, then the reindeer, the husky and the snowman, and the fox and the rabbits last. In Peel the wind blows soft and a fire crackles inside.",
+        "paid": True,
+    },
+    {
+        "slug": "santas-workshop",
+        "c1": "#6b1f1f", "c2": "#f0c05a",
+        "sub": "19 pieces · Santa's workshop on Christmas Eve, every elf at work",
+        "blurb": "The wreath and the reindeer at the window first, then Santa and Mrs Claus, then the elves and the rocking horse, and the toys on the floor last. In Peel the fire crackles and a music box plays Jingle Bells.",
+        "paid": True,
+    },
+    {
+        "slug": "last-tram-home",
+        "c1": "#1a2747", "c2": "#f0a35a",
+        "sub": "20 pieces · an old street on Christmas Eve, the last tram and everyone going home",
+        "blurb": "The windows and the wreaths first, then the tram and the shoppers, then the dog, the bicycle and the carol singers, and the couple under the umbrella last. In Peel the street is quiet and the tram bell rings.",
+        "paid": True,
+    },
+    {
+        "slug": "gingerbread-kitchen",
+        "c1": "#7a2a1e", "c2": "#f2c27a",
+        "sub": "20 pieces · a farmhouse kitchen, the whole family baking",
+        "blurb": "The shelves and the kettle first, then grandma at the oven and dad with the dough, then the children and the cake, and the cat and the begging dog last. In Peel the kettle simmers and a music box plays.",
+        "paid": True,
+    },
+    {
+        "slug": "rooftop-sleigh",
+        "c1": "#123a6b", "c2": "#f4d27a",
+        "sub": "19 pieces · snowy rooftops under a full moon, the night Santa lands",
+        "blurb": "The sleigh, the elf and the owl first, then Santa in the chimney and the reindeer, then the cat and the snowman, and the boy at the window and the presents last. In Peel the wind blows and sleigh bells ring.",
+        "paid": True,
+    },
     {
         "slug": "first-lamp",
         "c1": "#5d7a4a", "c2": "#e8a33d",
@@ -126,7 +169,8 @@ SCENES = [
 
 # From 9 November 2026 the page opens on Christmas Eve (free), then the year-round scenes; the
 # Halloween and Deepavali scenes, both behind us, go last.
-SCENE_ORDER = ["christmas-eve", "village-night", "lantern-alley", "firefly-jar", "knock-twice",
+SCENE_ORDER = ["christmas-eve", "christmas-market", "aurora-cabin", "santas-workshop", "last-tram-home",
+               "gingerbread-kitchen", "rooftop-sleigh", "village-night", "lantern-alley", "firefly-jar", "knock-twice",
                "first-lamp", "deepavali-doorstep"]
 SCENES.sort(key=lambda s: SCENE_ORDER.index(s["slug"]) if s["slug"] in SCENE_ORDER else len(SCENE_ORDER))
 
