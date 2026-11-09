@@ -620,3 +620,38 @@
       // whole reason they are written into the page.
     });
 })();
+
+/* The iPhone banner.
+ *
+ * Peel is Android only, and a large share of the people who follow a link from Instagram or
+ * Facebook are reading it on a phone that cannot run the app. For them the Play button is a
+ * dead end, so the banner above the headline is the only useful thing on the page.
+ *
+ * Progressive enhancement on purpose: the banner ships `hidden` and this is what reveals it,
+ * so a visitor with no JavaScript sees the ordinary page rather than a banner aimed at the
+ * wrong phone.
+ */
+(function () {
+  var banner = document.getElementById("ios-banner");
+  if (!banner) return;
+
+  // iPadOS reports itself as a Mac, so the touch count is what separates an iPad from a
+  // desktop Safari; `MacIntel` with more than one touch point is an iPad and nothing else.
+  var ua = navigator.userAgent || "";
+  var isIpad = /Mac/.test(ua) && navigator.maxTouchPoints > 1;
+  var isIos = /iPhone|iPad|iPod/.test(ua) || isIpad;
+
+  // Carry ?from= onto every link to the waitlist, so a tap is attributed to whatever brought
+  // the visitor here. Without this the source is lost at the first hop and every signup off a
+  // post looks like a direct visit.
+  var from = new URLSearchParams(location.search).get("from");
+  if (from) {
+    var suffix = "?from=" + encodeURIComponent(from.slice(0, 32));
+    var links = document.querySelectorAll("#ios-banner-link, [data-ios-link]");
+    Array.prototype.forEach.call(links, function (link) {
+      link.setAttribute("href", "ios.html" + suffix);
+    });
+  }
+
+  if (isIos) banner.hidden = false;
+})();

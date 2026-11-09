@@ -79,6 +79,14 @@
 
 <section class="hero">
   <div>
+    <!-- Shown to iPhone and iPad visitors only, by ios-banner in peel.js. Most of the people
+         who arrive here from Instagram or Facebook are on a phone they cannot run Peel on, and
+         the Play button is the wrong answer for every one of them. Hidden by default so a
+         visitor without JavaScript sees the ordinary page and the quiet line under the CTA. -->
+    <aside class="ios-banner" id="ios-banner" hidden>
+      <p><strong>Peel is an Android app.</strong> There is no iPhone version yet.</p>
+      <a class="btn" id="ios-banner-link" href="ios.html">Tell me you want one</a>
+    </aside>
     <h1>Your photos,<br><span class="wave">cut into stickers.</span></h1>
     <p class="lede">Peel turns a photo into a sticker pack for WhatsApp or Telegram in under a
     minute, and saves any sticker to your gallery for a TikTok, a Reel or a CapCut edit. The
@@ -88,7 +96,7 @@
       <a class="btn" href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get it on Google Play</a>
       <a class="btn ghost glow" href="packs.html">Free sticker sheets</a>
     </div>
-    <p class="note"><a href="ios.html">On an iPhone?</a> There is no iOS version yet. Say if you want one.</p>
+    <p class="note"><a href="ios.html" data-ios-link>On an iPhone?</a> There is no iOS version yet. Say if you want one.</p>
     <div class="chips">
       <span class="chip">WhatsApp</span>
       <span class="chip">Telegram</span>

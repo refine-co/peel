@@ -1115,3 +1115,23 @@ body.rail-dragging .hero-art .flyaway { animation-play-state: paused; }
 /* Two columns rather than three for these: they are the reason to scroll, and a moving
    picture at 110 px wide is a flicker rather than a puppy. */
 #moving .tiles { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); }
+
+/* The iPhone banner, shown only to iOS visitors by peel.js.
+   Loud enough that somebody arriving from a post cannot miss it, quiet enough that it is not
+   mistaken for an ad. It sits above the headline because an iPhone visitor has no use for
+   anything below it. */
+.ios-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1rem;
+  margin: 0 0 1.5rem;
+  padding: .9rem 1.1rem;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+.ios-banner p { margin: 0; flex: 1 1 14rem; font-size: .96rem; line-height: 1.45; }
+.ios-banner strong { color: var(--accent); }
+.ios-banner .btn { flex: 0 0 auto; padding: .55rem 1.1rem; font-size: .95rem; }
