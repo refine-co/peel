@@ -287,6 +287,23 @@ h1 .wave {
   color: transparent;
 }
 
+/* A real screen from the app, in a phone-shaped frame (9 Nov 2026). Plain image, no device
+   mock-up: the page is the product, and a drawn phone would date the moment phones change. */
+.phone-shot {
+  display: block;
+  width: min(100%, 300px);
+  height: auto;
+  border-radius: 30px;
+  border: 7px solid #26201c;
+  background: #26201c;
+  box-shadow: var(--shadow), 0 18px 40px -18px rgba(40, 32, 24, .45);
+}
+.hero-art .phone-shot { transform: rotate(2deg); }
+.app-shots { display: grid; gap: 1.5rem; grid-template-columns: 1fr; margin: 1rem 0 .5rem; }
+@media (min-width: 44rem) { .app-shots { grid-template-columns: 1fr 1fr; } }
+.app-shot { display: grid; justify-items: center; gap: .9rem; text-align: center; }
+.app-shot .note { max-width: 26rem; }
+
 /* the little sheet in the hero, with one sticker already lifted off it */
 .hero-art { position: relative; justify-self: center; }
 
