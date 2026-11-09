@@ -68,11 +68,11 @@ HEAD = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ready-made pages — Peel</title>
-<meta name="description" content="{count} ready-made pages for Peel's Dayleaf: a drawn border and a blank middle to peel your stickers onto. Free, no account, nothing leaves your phone.">
+<title>Dayleaf — Peel</title>
+<meta name="description" content="Dayleaf in Peel: pick one of {count} ready-made pictures, peel your stickers onto it, write one line. Free, no account, nothing leaves your phone.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Free ready-made journal pages — Peel">
-<meta property="og:description" content="{count} drawn pages with a blank middle. Open Dayleaf in Peel, tap one, and start sticking.">
+<meta property="og:title" content="Dayleaf: a sticker journal — Peel">
+<meta property="og:description" content="{count} ready-made pictures to stick on. Open Dayleaf in Peel, tap one, and start sticking.">
 <meta property="og:image" content="https://peel.refineco.app/dayleaf/in-app/good-night.webp">
 <meta property="og:url" content="https://peel.refineco.app/dayleaf.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -94,7 +94,7 @@ HEAD = """<!doctype html>
       <a href="index.html">Home</a>
       <a href="packs.html">Packs</a>
       <a href="scenes.html">Scenes</a>
-      <a href="dayleaf.html" aria-current="page">Pages</a>
+      <a href="dayleaf.html" aria-current="page">Dayleaf</a>
     </nav>
   </div>
 </header>
@@ -104,22 +104,23 @@ HEAD = """<!doctype html>
 <section class="hero">
   <div>
     <p class="eyebrow">Dayleaf</p>
-    <h1>A page that is<br><span class="wave">already somewhere.</span></h1>
-    <p class="lede">Pick a page, peel stickers onto it.</p>
+    <h1>A dayleaf that is<br><span class="wave">already somewhere.</span></h1>
+    <p class="lede">Pick a picture, peel stickers onto it, write one line.</p>
     <div class="cta">
       <a class="btn" href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get Peel on Google Play</a>
       <a class="btn ghost" href="#pages">See all {count}</a>
     </div>
     <div class="chips">
-      <span class="chip">{count} pages</span>
+      <span class="chip">{count} ready-made</span>
       <span class="chip">All free</span>
       <span class="chip">No account</span>
       <span class="chip">Your photos work too</span>
     </div>
   </div>
   <div class="hero-art">
-    <img class="phone-shot" src="dayleaf/app/dayleaf-page.webp" width="660" height="1332"
-      alt="A dayleaf open in Peel: a Christmas page with a cat sticker, a speech bubble and a written line, the sticker tray below" decoding="async">
+    <video class="phone-shot" src="video/dayleaf-v2.mp4" poster="video/dayleaf-v2.jpg" width="540" height="960"
+      controls playsinline preload="none"
+      aria-label="Making a dayleaf in Peel: pick a night-market picture, stick stickers, write a line, then turn the book"></video>
   </div>
 </section>
 """
@@ -129,15 +130,15 @@ HEAD = """<!doctype html>
 # story; Mochi is the puppy drawn on the Fairy lights page, carried through as a sticker.
 STORY = """
 <section class="story" aria-labelledby="story-h">
-  <h2 id="story-h">One December, three pages</h2>
-  <p class="note">Made in Peel: a page, a few stickers, one line.</p>
+  <h2 id="story-h">One December, three dayleafs</h2>
+  <p class="note">Made in Peel: a picture, a few stickers, one line.</p>
   <div class="story-pages">
     <figure><img src="dayleaf/examples/story-1.webp" width="774" height="1082" loading="lazy" decoding="async"
-      alt="A fairy-lights page with Merry Christmas, a bear, a reindeer and Ho Ho Ho stickers, and the line: Tree is up! Mochi helped, sort of"><figcaption>The tree</figcaption></figure>
+      alt="A fairy-lights dayleaf with Merry Christmas, a bear, a reindeer and Ho Ho Ho stickers, and the line: Tree is up! Mochi helped, sort of"><figcaption>The tree</figcaption></figure>
     <figure><img src="dayleaf/examples/story-2.webp" width="774" height="1082" loading="lazy" decoding="async"
-      alt="A gingerbread-house page with a gingerbread man, a fox with cocoa and a puppy in lights, and the line: Baked with Grandma. Mochi ate the roof"><figcaption>The baking</figcaption></figure>
+      alt="A gingerbread-house dayleaf with a gingerbread man, a fox with cocoa and a puppy in lights, and the line: Baked with Grandma. Mochi ate the roof"><figcaption>The baking</figcaption></figure>
     <figure><img src="dayleaf/examples/story-3.webp" width="774" height="1082" loading="lazy" decoding="async"
-      alt="A tropical Christmas page with Let it snow, a puppy and an owl in earmuffs, and the line: 33 degrees in KL. Mochi still wants snow"><figcaption>The heat</figcaption></figure>
+      alt="A tropical Christmas dayleaf with Let it snow, a puppy and an owl in earmuffs, and the line: 33 degrees in KL. Mochi still wants snow"><figcaption>The heat</figcaption></figure>
   </div>
 </section>
 """
@@ -202,7 +203,7 @@ def tiles(rows: list[tuple[str, str, str]]) -> str:
         TILE.format(src=src, title=esc(title),
                     # The name alone, not "a picture of": the tile below it says the name and a
                     # screen reader would otherwise hear it twice.
-                    alt=esc(f"{title}, a ready-made page"))
+                    alt=esc(f"{title}, a ready-made dayleaf picture"))
         for src, title, _ in rows)
 
 
@@ -236,7 +237,7 @@ def main() -> None:
     schema = {
         "@context": "https://schema.org",
         "@type": "ItemList",
-        "name": "Peel ready-made dayleaf pages",
+        "name": "Peel ready-made dayleaf pictures",
         "numberOfItems": total,
         "itemListElement": [
             {"@type": "ListItem", "position": i + 1, "name": title}
@@ -248,17 +249,17 @@ def main() -> None:
     body += STORY
     body += '\n<div id="pages"></div>\n'
     body += SECTION.format(
-        anchor="moving", heading="Pages that move",
+        anchor="moving", heading="Ready-made that move",
         note="Lights twinkle, cats breathe. Christmas first.",
         tiles="\n".join(MOVING_TILE.format(src=src, still=src.replace(".webp", "-still.webp"),
                                             title=esc(t), how=esc(h),
-                                            alt=esc(f"{t}, an animated ready-made page"))
+                                            alt=esc(f"{t}, an animated ready-made dayleaf picture"))
                         for src, t, h in moving))
     body += SECTION.format(
         anchor="in-app", heading="In the app",
         # Counted, not written: the bundled Christmas pages sit in the moving section above,
         # so "twelve" was wrong the day they moved there.
-        note=f"{len(in_app)} pages, ready offline.",
+        note=f"{len(in_app)} more, ready offline.",
         tiles=tiles(in_app))
     body += SECTION.format(
         anchor="more", heading="A tap away",

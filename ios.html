@@ -26,7 +26,8 @@
   .strip img:nth-child(even) { transform: rotate(5deg) translateY(4px); }
   .ios-hero .cta { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
   main.page h2 { margin-top: 2.6rem; scroll-margin-top: 5.5rem; }
-  .films { display: grid; gap: .8rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .films { display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; }
+  .films > div { flex: 0 0 calc((100% - 1.6rem) / 3); }
   .films video { width: 100%; border-radius: 14px; display: block; background: #16150f; }
   .films p { margin: .4rem 0 0; font-weight: 700; font-size: .95rem; text-align: center; }
   .look { display: grid; gap: .8rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -53,7 +54,7 @@
   .said[data-tone="bad"] { color: var(--pink); }
   .said[data-tone="good"] { color: var(--mint); }
   .ask .chips { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-top: .6rem; }
-  @media (max-width: 480px) { .films { grid-template-columns: 1fr 1fr; } .films > div:last-child { grid-column: span 2; max-width: 50%; justify-self: center; } }
+  @media (max-width: 480px) { .films > div { flex-basis: calc((100% - .8rem) / 2); } }
 </style>
 </head>
 <body>
@@ -65,7 +66,7 @@
       <a href="index.html">Home</a>
       <a href="packs.html">Packs</a>
       <a href="scenes.html">Scenes</a>
-      <a href="dayleaf.html">Pages</a>
+      <a href="dayleaf.html">Dayleaf</a>
     </nav>
   </div>
 </header>
@@ -105,13 +106,21 @@
     <video src="video/text-v2.mp4" poster="video/text-v2.jpg" controls playsinline preload="none"></video>
     <p>30 text stickers, 1 tap</p>
   </div>
+  <div>
+    <video src="video/scene-v2.mp4" poster="video/scene-v2.jpg" controls playsinline preload="none"></video>
+    <p>Put a scene back</p>
+  </div>
+  <div>
+    <video src="video/dayleaf-v2.mp4" poster="video/dayleaf-v2.jpg" controls playsinline preload="none"></video>
+    <p>Dayleaf: keep your day</p>
+  </div>
 </div>
 
 <h2>Have a look around</h2>
 <div class="look">
   <a href="packs.html"><img src="art/tile-packs.webp" width="480" height="600" loading="lazy" alt="A sheet of Christmas stickers"><span>Sticker packs</span></a>
   <a href="scenes.html"><img src="art/tile-scenes.webp" width="480" height="600" loading="lazy" alt="A Christmas market scene, half put back together"><span>Scenes</span></a>
-  <a href="dayleaf.html"><img src="art/tile-pages.webp" width="480" height="600" loading="lazy" alt="A Christmas page made in Peel: stickers and the line Tree is up! Mochi helped, sort of"><span>Ready-made pages</span></a>
+  <a href="dayleaf.html"><img src="art/tile-pages.webp" width="480" height="600" loading="lazy" alt="A Christmas dayleaf made in Peel: stickers and the line Tree is up! Mochi helped, sort of"><span>Dayleaf</span></a>
   <a href="index.html"><img src="art/tile-app.webp" width="480" height="600" loading="lazy" alt="Peel's editor turning a cat photo into an OK lah sticker"><span>The app</span></a>
 </div>
 

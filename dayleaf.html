@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ready-made pages — Peel</title>
-<meta name="description" content="52 ready-made pages for Peel's Dayleaf: a drawn border and a blank middle to peel your stickers onto. Free, no account, nothing leaves your phone.">
+<title>Dayleaf — Peel</title>
+<meta name="description" content="Dayleaf in Peel: pick one of 52 ready-made pictures, peel your stickers onto it, write one line. Free, no account, nothing leaves your phone.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Free ready-made journal pages — Peel">
-<meta property="og:description" content="52 drawn pages with a blank middle. Open Dayleaf in Peel, tap one, and start sticking.">
+<meta property="og:title" content="Dayleaf: a sticker journal — Peel">
+<meta property="og:description" content="52 ready-made pictures to stick on. Open Dayleaf in Peel, tap one, and start sticking.">
 <meta property="og:image" content="https://peel.refineco.app/dayleaf/in-app/good-night.webp">
 <meta property="og:url" content="https://peel.refineco.app/dayleaf.html">
 <meta name="twitter:card" content="summary_large_image">
@@ -20,7 +20,7 @@
 {
  "@context": "https://schema.org",
  "@type": "ItemList",
- "name": "Peel ready-made dayleaf pages",
+ "name": "Peel ready-made dayleaf pictures",
  "numberOfItems": 52,
  "itemListElement": [
   {
@@ -296,7 +296,7 @@
       <a href="index.html">Home</a>
       <a href="packs.html">Packs</a>
       <a href="scenes.html">Scenes</a>
-      <a href="dayleaf.html" aria-current="page">Pages</a>
+      <a href="dayleaf.html" aria-current="page">Dayleaf</a>
     </nav>
   </div>
 </header>
@@ -306,42 +306,43 @@
 <section class="hero">
   <div>
     <p class="eyebrow">Dayleaf</p>
-    <h1>A page that is<br><span class="wave">already somewhere.</span></h1>
-    <p class="lede">Pick a page, peel stickers onto it.</p>
+    <h1>A dayleaf that is<br><span class="wave">already somewhere.</span></h1>
+    <p class="lede">Pick a picture, peel stickers onto it, write one line.</p>
     <div class="cta">
       <a class="btn" href="https://play.google.com/store/apps/details?id=my.refineco.peel">Get Peel on Google Play</a>
       <a class="btn ghost" href="#pages">See all 52</a>
     </div>
     <div class="chips">
-      <span class="chip">52 pages</span>
+      <span class="chip">52 ready-made</span>
       <span class="chip">All free</span>
       <span class="chip">No account</span>
       <span class="chip">Your photos work too</span>
     </div>
   </div>
   <div class="hero-art">
-    <img class="phone-shot" src="dayleaf/app/dayleaf-page.webp" width="660" height="1332"
-      alt="A dayleaf open in Peel: a Christmas page with a cat sticker, a speech bubble and a written line, the sticker tray below" decoding="async">
+    <video class="phone-shot" src="video/dayleaf-v2.mp4" poster="video/dayleaf-v2.jpg" width="540" height="960"
+      controls playsinline preload="none"
+      aria-label="Making a dayleaf in Peel: pick a night-market picture, stick stickers, write a line, then turn the book"></video>
   </div>
 </section>
 
 <section class="story" aria-labelledby="story-h">
-  <h2 id="story-h">One December, three pages</h2>
-  <p class="note">Made in Peel: a page, a few stickers, one line.</p>
+  <h2 id="story-h">One December, three dayleafs</h2>
+  <p class="note">Made in Peel: a picture, a few stickers, one line.</p>
   <div class="story-pages">
     <figure><img src="dayleaf/examples/story-1.webp" width="774" height="1082" loading="lazy" decoding="async"
-      alt="A fairy-lights page with Merry Christmas, a bear, a reindeer and Ho Ho Ho stickers, and the line: Tree is up! Mochi helped, sort of"><figcaption>The tree</figcaption></figure>
+      alt="A fairy-lights dayleaf with Merry Christmas, a bear, a reindeer and Ho Ho Ho stickers, and the line: Tree is up! Mochi helped, sort of"><figcaption>The tree</figcaption></figure>
     <figure><img src="dayleaf/examples/story-2.webp" width="774" height="1082" loading="lazy" decoding="async"
-      alt="A gingerbread-house page with a gingerbread man, a fox with cocoa and a puppy in lights, and the line: Baked with Grandma. Mochi ate the roof"><figcaption>The baking</figcaption></figure>
+      alt="A gingerbread-house dayleaf with a gingerbread man, a fox with cocoa and a puppy in lights, and the line: Baked with Grandma. Mochi ate the roof"><figcaption>The baking</figcaption></figure>
     <figure><img src="dayleaf/examples/story-3.webp" width="774" height="1082" loading="lazy" decoding="async"
-      alt="A tropical Christmas page with Let it snow, a puppy and an owl in earmuffs, and the line: 33 degrees in KL. Mochi still wants snow"><figcaption>The heat</figcaption></figure>
+      alt="A tropical Christmas dayleaf with Let it snow, a puppy and an owl in earmuffs, and the line: 33 degrees in KL. Mochi still wants snow"><figcaption>The heat</figcaption></figure>
   </div>
 </section>
 
 <div id="pages"></div>
 
 <section class="tiles-section" id="moving" aria-labelledby="moving-h">
-  <h2 id="moving-h">Pages that move</h2>
+  <h2 id="moving-h">Ready-made that move</h2>
   <p class="note">Lights twinkle, cats breathe. Christmas first.</p>
   <ul class="tiles">
     <li class="tile moving">
@@ -350,7 +351,7 @@
           <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
                less motion is served a still frame instead of the loop. -->
           <source srcset="dayleaf/anim/christmas-fairy-lights-still.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="dayleaf/anim/christmas-fairy-lights.webp" alt="Fairy lights, an animated ready-made page" width="432" height="576" loading="lazy" decoding="async">
+          <img src="dayleaf/anim/christmas-fairy-lights.webp" alt="Fairy lights, an animated ready-made dayleaf picture" width="432" height="576" loading="lazy" decoding="async">
         </picture>
         <span class="tile-badge">Animated</span>
       </span>
@@ -363,7 +364,7 @@
           <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
                less motion is served a still frame instead of the loop. -->
           <source srcset="dayleaf/anim/christmas-tree-still.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="dayleaf/anim/christmas-tree.webp" alt="Christmas, an animated ready-made page" width="432" height="576" loading="lazy" decoding="async">
+          <img src="dayleaf/anim/christmas-tree.webp" alt="Christmas, an animated ready-made dayleaf picture" width="432" height="576" loading="lazy" decoding="async">
         </picture>
         <span class="tile-badge">Animated</span>
       </span>
@@ -376,7 +377,7 @@
           <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
                less motion is served a still frame instead of the loop. -->
           <source srcset="dayleaf/anim/christmas-santa-still.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="dayleaf/anim/christmas-santa.webp" alt="Father Christmas, an animated ready-made page" width="432" height="576" loading="lazy" decoding="async">
+          <img src="dayleaf/anim/christmas-santa.webp" alt="Father Christmas, an animated ready-made dayleaf picture" width="432" height="576" loading="lazy" decoding="async">
         </picture>
         <span class="tile-badge">Animated</span>
       </span>
@@ -389,7 +390,7 @@
           <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
                less motion is served a still frame instead of the loop. -->
           <source srcset="dayleaf/anim/christmas-gingerbread-still.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="dayleaf/anim/christmas-gingerbread.webp" alt="Gingerbread house, an animated ready-made page" width="432" height="576" loading="lazy" decoding="async">
+          <img src="dayleaf/anim/christmas-gingerbread.webp" alt="Gingerbread house, an animated ready-made dayleaf picture" width="432" height="576" loading="lazy" decoding="async">
         </picture>
         <span class="tile-badge">Animated</span>
       </span>
@@ -402,7 +403,7 @@
           <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
                less motion is served a still frame instead of the loop. -->
           <source srcset="dayleaf/anim/christmas-tropical-still.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="dayleaf/anim/christmas-tropical.webp" alt="Christmas in the heat, an animated ready-made page" width="432" height="576" loading="lazy" decoding="async">
+          <img src="dayleaf/anim/christmas-tropical.webp" alt="Christmas in the heat, an animated ready-made dayleaf picture" width="432" height="576" loading="lazy" decoding="async">
         </picture>
         <span class="tile-badge">Animated</span>
       </span>
@@ -415,7 +416,7 @@
           <!-- CSS cannot pause an animated WebP, so somebody who has asked their system for
                less motion is served a still frame instead of the loop. -->
           <source srcset="dayleaf/anim/night-market-still.webp" media="(prefers-reduced-motion: reduce)">
-          <img src="dayleaf/anim/night-market.webp" alt="Night market, an animated ready-made page" width="432" height="576" loading="lazy" decoding="async">
+          <img src="dayleaf/anim/night-market.webp" alt="Night market, an animated ready-made dayleaf picture" width="432" height="576" loading="lazy" decoding="async">
         </picture>
         <span class="tile-badge">Animated</span>
       </span>
@@ -427,50 +428,50 @@
 
 <section class="tiles-section" id="in-app" aria-labelledby="in-app-h">
   <h2 id="in-app-h">In the app</h2>
-  <p class="note">11 pages, ready offline.</p>
+  <p class="note">11 more, ready offline.</p>
   <ul class="tiles">
     <li class="tile">
-      <img src="dayleaf/in-app/birthday.webp" alt="Birthday, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/birthday.webp" alt="Birthday, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Birthday</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/good-night.webp" alt="Good night, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/good-night.webp" alt="Good night, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Good night</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/rainy-day.webp" alt="Rainy day, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/rainy-day.webp" alt="Rainy day, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Rainy day</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/sunny-day.webp" alt="Sunny day, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/sunny-day.webp" alt="Sunny day, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Sunny day</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/garden.webp" alt="Garden, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/garden.webp" alt="Garden, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Garden</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/study.webp" alt="Study, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/study.webp" alt="Study, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Study</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/latte.webp" alt="Coffee, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/latte.webp" alt="Coffee, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Coffee</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/kopitiam.webp" alt="Kopitiam, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/kopitiam.webp" alt="Kopitiam, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Kopitiam</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/cat.webp" alt="Cat, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/cat.webp" alt="Cat, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Cat</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/sprout.webp" alt="Fresh start, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/sprout.webp" alt="Fresh start, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Fresh start</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/in-app/lantern.webp" alt="Quiet evening, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/in-app/lantern.webp" alt="Quiet evening, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Quiet evening</span>
     </li>
   </ul>
@@ -481,143 +482,143 @@
   <p class="note">35 more, free, one tap to download.</p>
   <ul class="tiles">
     <li class="tile">
-      <img src="dayleaf/alarm-clock.webp" alt="Busy day, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/alarm-clock.webp" alt="Busy day, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Busy day</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/autumn.webp" alt="Autumn, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/autumn.webp" alt="Autumn, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Autumn</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/beach.webp" alt="Beach, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/beach.webp" alt="Beach, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Beach</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/books-lamp.webp" alt="Reading, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/books-lamp.webp" alt="Reading, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Reading</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/bubble-tea.webp" alt="Bubble tea, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/bubble-tea.webp" alt="Bubble tea, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Bubble tea</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/burger.webp" alt="Something good, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/burger.webp" alt="Something good, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Something good</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/bus.webp" alt="On the way, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/bus.webp" alt="On the way, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">On the way</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/cake-slice.webp" alt="Cake, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/cake-slice.webp" alt="Cake, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Cake</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/camper-van.webp" alt="Road trip, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/camper-van.webp" alt="Road trip, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Road trip</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/cat-donut-bed.webp" alt="Nap, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/cat-donut-bed.webp" alt="Nap, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Nap</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/chocolate-box.webp" alt="Date night, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/chocolate-box.webp" alt="Date night, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Date night</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/cupcake.webp" alt="Baking day, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/cupcake.webp" alt="Baking day, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Baking day</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/durian.webp" alt="Fruit season, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/durian.webp" alt="Fruit season, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Fruit season</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/family-day.webp" alt="Family day, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/family-day.webp" alt="Family day, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Family day</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/graduation.webp" alt="Graduation, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/graduation.webp" alt="Graduation, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Graduation</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/hills-trails.webp" alt="Hills and trails, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/hills-trails.webp" alt="Hills and trails, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Hills and trails</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/laptop.webp" alt="At the desk, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/laptop.webp" alt="At the desk, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">At the desk</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/lazy-weekend.webp" alt="Lazy weekend, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/lazy-weekend.webp" alt="Lazy weekend, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Lazy weekend</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/love-notes.webp" alt="Love notes, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/love-notes.webp" alt="Love notes, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Love notes</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/making-things.webp" alt="Making things, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/making-things.webp" alt="Making things, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Making things</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/music.webp" alt="Music, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/music.webp" alt="Music, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Music</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/new-baby.webp" alt="New baby, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/new-baby.webp" alt="New baby, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">New baby</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/new-home.webp" alt="New home, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/new-home.webp" alt="New home, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">New home</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/new-year.webp" alt="New year, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/new-year.webp" alt="New year, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">New year</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/noodle-bowl.webp" alt="Dinner at home, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/noodle-bowl.webp" alt="Dinner at home, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Dinner at home</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/open-house.webp" alt="Open house, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/open-house.webp" alt="Open house, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Open house</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/raincoat-duck.webp" alt="Monsoon, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/raincoat-duck.webp" alt="Monsoon, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Monsoon</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/shiba.webp" alt="Dog day, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/shiba.webp" alt="Dog day, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Dog day</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/spring.webp" alt="Spring, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/spring.webp" alt="Spring, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Spring</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/tea-time.webp" alt="Tea time, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/tea-time.webp" alt="Tea time, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Tea time</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/thank-you.webp" alt="Thank you, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/thank-you.webp" alt="Thank you, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Thank you</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/travel.webp" alt="Travel, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/travel.webp" alt="Travel, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Travel</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/two-bears.webp" alt="Friends, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/two-bears.webp" alt="Friends, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Friends</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/wedding.webp" alt="Wedding, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/wedding.webp" alt="Wedding, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Wedding</span>
     </li>
     <li class="tile">
-      <img src="dayleaf/winged-envelope.webp" alt="Miss you, a ready-made page" width="1008" height="1344" loading="lazy" decoding="async">
+      <img src="dayleaf/winged-envelope.webp" alt="Miss you, a ready-made dayleaf picture" width="1008" height="1344" loading="lazy" decoding="async">
       <span class="tile-name">Miss you</span>
     </li>
   </ul>
