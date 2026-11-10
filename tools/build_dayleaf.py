@@ -188,6 +188,7 @@ TAIL = """
 
 </main>
 <script src="peel.js" defer></script>
+<script src="snow.js" defer></script>
 </body>
 </html>
 """

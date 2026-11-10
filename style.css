@@ -1249,3 +1249,34 @@ footer a { display: inline-block; padding: .4rem 0; }
 .hop-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 84px)); gap: .35rem; }
 .ios-hero .hop-strip { justify-content: center; }
 .hop-strip img { width: 100%; }
+
+/* Christmas snow (10 Nov 2026). snow.js adds html.snowy from 1 Nov to 6 Jan, and drops it again
+   when the snowflake button turns the snow off, so everything below goes with it. */
+canvas.snow { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.snow-toggle {
+  position: fixed; right: 14px; bottom: 14px; z-index: 50;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--fg);
+  font-size: 1.25rem; line-height: 1; cursor: pointer; box-shadow: var(--shadow);
+  opacity: .9; transition: transform var(--quick) var(--spring), opacity var(--quick) var(--out);
+}
+.snow-toggle:hover, .snow-toggle:focus-visible { opacity: 1; transform: rotate(30deg); }
+.snow-toggle[aria-pressed="false"] { opacity: .5; filter: grayscale(1); }
+
+/* Snow drapes off the bottom of the menu bar, like the edge of a roof. */
+.snowy .topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -15px; height: 16px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='16' viewBox='0 0 180 16'%3E%3Cpath d='M0 0H180V4 C177.3 13.5 164.7 13.5 162.0 4 C160.2 8.1 151.8 8.1 150.0 4 C148.5 8.1 141.5 8.1 140.0 4 C137.6 13.5 126.4 13.5 124.0 4 C122.5 8.1 115.5 8.1 114.0 4 C112.5 8.1 105.5 8.1 104.0 4 C101.0 9.4 87.0 9.4 84.0 4 C82.5 8.1 75.5 8.1 74.0 4 C71.9 16.1 62.1 16.1 60.0 4 C57.0 8.1 43.0 8.1 40.0 4 C38.5 8.1 31.5 8.1 30.0 4 C27.6 8.1 16.4 8.1 14.0 4 C11.9 9.4 2.1 9.4 0.0 4Z' fill='%23fff'/%3E%3C/svg%3E") repeat-x;
+  background-size: 180px 16px;
+  filter: drop-shadow(0 2px 1.5px rgba(90, 120, 170, .35));
+}
+
+/* A little snow piled on the filled buttons. Not on the small card buttons: dozens of them on
+   the packs page would turn decoration into noise. */
+.snowy .btn:not(.ghost):not(.small):not(.glow) { position: relative; }
+.snowy .btn:not(.ghost):not(.small):not(.glow)::before {
+  content: ""; position: absolute; left: 12%; right: 12%; top: -6px; height: 11px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='11' viewBox='0 0 100 11' preserveAspectRatio='none'%3E%3Cpath d='M0 11c2-4 6-6 11-6 2-3 7-5 12-4 4-2 9-1 12 1 5-2 11-1 14 2 4-3 11-3 15 0 4-2 9-2 13 1 5-1 10 1 12 3 4 0 8 1 11 3z' fill='%23fff'/%3E%3C/svg%3E") no-repeat;
+  background-size: 100% 100%;
+  filter: drop-shadow(0 -1px 1px rgba(90, 120, 170, .35));
+}
