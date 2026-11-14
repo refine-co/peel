@@ -94,6 +94,8 @@ NEEDS_BY_ID: dict[str, int] = {
     "cosy-windows": 50, "knitted-friends": 50, "velvet-tartan": 50, "sweet-season": 50,
     # Ho Ho Oops (9 November 2026), the sixth Christmas pack, for the same reason.
     "ho-ho-oops": 50,
+    # Gleany the Naughty Coin (15 November 2026), paid, for the same reason as the Christmas packs.
+    "gleany-naughty": 50,
     # First Lamp is free, and 2.5.3 (versionCode 53) is the release that can tell: it is
     # the first build that reads a scene's price from this list instead of only from the
     # compiled one. An older build has never heard of the scene, and an unknown scene is
@@ -131,6 +133,8 @@ PAID_IDS: set[str] = {
     "dead-honest", "sir-crow",
     "lakshmi", "divine-blessings", "mayil",
     "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season", "ho-ho-oops",
+    # Gleany the Naughty Coin, Glean's mascot as an animated pack (Yow: "Paid", 14 Nov 2026).
+    "gleany-naughty",
     # The two paid scenes. They were never listed here, because until 2.5.3 the app decided
     # a scene entirely from FreeContent.SCENES and an unknown scene was paid, so the flag
     # had nothing to do. 2.5.3 lets the catalogue say a scene is free -- which is what frees
@@ -165,6 +169,7 @@ CATEGORY_BY_ID: dict[str, str] = {
     "oyen-kampung": "cats",
     "reactions": "chat",
     "say-it": "chat",
+    "gleany-naughty": "chat",
     "sir-crow": "halloween",
     "moth-lights": "halloween",
     # Scenes carry one too, for later; More fun keeps its single Scenes ring for now.
@@ -245,6 +250,8 @@ VAULT: dict[str, str] = {
     "velvet-tartan": "3kw1ftjsvc",
     "sweet-season": "md7udw71bs",
     "ho-ho-oops": "o8pn3ip0sl",
+    # Gleany the Naughty Coin, 15 November 2026. Permanent once published.
+    "gleany-naughty": "y33wtg7h54",
 }
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would

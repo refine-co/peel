@@ -303,6 +303,16 @@ PACKS = [
         "after": "Also built into Peel. This file is for sharing it with someone who has not installed the app yet.",
         "section": None,
     },
+    {
+        "slug": "gleany-naughty",
+        "title": "Gleany the Naughty Coin",
+        "spec": None,
+        "c1": "#2f8f6f", "c2": "#f2c14e",
+        "sub": "12 animated stickers \u00b7 Gleany, the coin from Glean, up to no good with your money: Wasn't me, Broke again, Where did it go?",
+        "new_until": "2027-01-15",
+        "after": UNLOCK_NOTE,
+        "section": None,
+    },
 ]
 
 # the sheet looks printed, not laid out: every sticker sits at its own slight angle
@@ -816,7 +826,7 @@ PAGE_ORDER = [
     # Christmas, from 9 November 2026: the free greeting first, then the paid packs.
     "merry-bright", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
     # Year-round, then the two festivals that are behind us.
-    "reactions", "say-it", "oyen-kampung",
+    "reactions", "say-it", "gleany-naughty", "oyen-kampung",
     # Halloween: animated first.
     "just-lurking", "low-light", "ghost-says", "moth-lights", "dead-honest", "sir-crow",
     "halloween", "halloween-night", "midnight-replies",
