@@ -109,6 +109,15 @@ PACKS = [
         "section": "Christmas",
     },
     {
+        "slug": "half-of-this",
+        "title": "Half of This",
+        "spec": None,
+        "c1": "#7a1f1a", "c2": "#e9c08a",
+        "sub": "12 animated stickers \u00b7 two cats, and every sticker is half of something somebody else has to finish: Ready? / Not ready., Pull. / I won., Night. / Wake up.",
+        "new_until": "2026-12-26",
+        "section": None,
+    },
+    {
         "slug": "ho-ho-oops",
         "title": "Ho Ho Oops",
         "spec": None,
@@ -824,7 +833,7 @@ def main():
 # list.
 PAGE_ORDER = [
     # Christmas, from 9 November 2026: the free greeting first, then the paid packs.
-    "merry-bright", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
+    "merry-bright", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
     # Year-round, then the two festivals that are behind us.
     "reactions", "say-it", "gleany-naughty", "oyen-kampung",
     # Halloween: animated first.
