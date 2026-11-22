@@ -98,6 +98,8 @@ NEEDS_BY_ID: dict[str, int] = {
     "gleany-naughty": 50,
     # Half of This (20 November 2026), paid, for the same reason as the Christmas packs.
     "half-of-this": 50,
+    # Caught (22 November 2026), paid, for the same reason as the Christmas packs.
+    "caught": 50,
     # First Lamp is free, and 2.5.3 (versionCode 53) is the release that can tell: it is
     # the first build that reads a scene's price from this list instead of only from the
     # compiled one. An older build has never heard of the scene, and an unknown scene is
@@ -140,6 +142,10 @@ PAID_IDS: set[str] = {
     # Half of This, two cats where every sticker is one half of something and the other half is
     # somebody else's (Yow: "Keep twelve", 20 Nov 2026).
     "half-of-this",
+    # Caught, Oyen mid-crime in a Christmas house, twelve crimes (Yow: "Yes, publish it", 22 Nov
+    # 2026). Built to answer a search with no supply: people type "animated christmas stickers"
+    # and get still clipart.
+    "caught",
     # The two paid scenes. They were never listed here, because until 2.5.3 the app decided
     # a scene entirely from FreeContent.SCENES and an unknown scene was paid, so the flag
     # had nothing to do. 2.5.3 lets the catalogue say a scene is free -- which is what frees
@@ -203,6 +209,7 @@ CATEGORY_BY_ID: dict[str, str] = {
     "merry-bright": "festivals",
     # Half of This, 20 November 2026: Christmas by way of a cracker and a bedtime.
     "half-of-this": "festivals",
+    "caught": "festivals",
     "cosy-windows": "festivals",
     "ho-ho-oops": "festivals",
     "knitted-friends": "festivals",
@@ -225,7 +232,7 @@ CATEGORY_ORDER = ["festivals", "cats", "chat", "cosy", "halloween"]
 # CATEGORY_ORDER the same day, behind the year-round shelves.
 SHELF_ORDER = [
     "christmas-eve", "christmas-market", "aurora-cabin", "santas-workshop", "last-tram-home", "gingerbread-kitchen", "rooftop-sleigh",
-    "merry-bright", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan",
+    "merry-bright", "caught", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan",
     "sweet-season", "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
     "little-diya", "mayil", "kolam-lights",
 ]
@@ -261,6 +268,8 @@ VAULT: dict[str, str] = {
     "gleany-naughty": "y33wtg7h54",
     # Half of This, 20 November 2026. Permanent once published.
     "half-of-this": "ybpnez5zv9",
+    # Caught, 22 November 2026. Permanent once published.
+    "caught": "p5w2fde3j3",
 }
 
 # The inline thumbnail. 192 px because a grid cell is 500-560 px on a 3x display and 96 would
