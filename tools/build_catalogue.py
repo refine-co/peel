@@ -279,12 +279,20 @@ OCCASION_WINDOW: dict[str, tuple[int, int]] = {
     "halloween": (31, 2),
     "deepavali": (14, 2),
 }
-# Deepavali moves every year, so it cannot be a month and a day. Only years that are actually
-# known go in here. 2026 is the date this site shipped its Deepavali shelf against: it led from
-# 1 November and went to the back on 9 November. An unknown year falls back to the most recent
-# known date and SAYS SO in the build output, rather than quietly ordering the shelf by a guess.
+# Deepavali moves every year, so it cannot be a month and a day. Only years somebody has actually
+# looked up go in here; an unknown year falls back to the most recent known date and SAYS SO in
+# the build output, rather than quietly ordering the shelf by a guess.
+#
+# These are Malaysia's dates, read 22 November 2026 from publicholidays.com.my/deepavali (national
+# except Sarawak). India's differ by a day in 2027 — publicholidays.in gives 29 October where
+# Malaysia gives the 28th — and agree in 2026 and 2028. The earlier of the two is used, so the
+# shelf is never late for either; the two-day tail below carries it past India's day as well.
+# This is RefineCo's own shelf and India is its biggest market, so the difference is worth
+# knowing before anyone "corrects" one of these by a day.
 DEEPAVALI_BY_YEAR: dict[int, tuple[int, int]] = {
-    2026: (11, 8),
+    2026: (11, 8),     # Sunday. Both countries agree.
+    2027: (10, 28),    # Thursday in Malaysia; India observes the 29th.
+    2028: (10, 17),    # Tuesday. Both countries agree.
 }
 
 
