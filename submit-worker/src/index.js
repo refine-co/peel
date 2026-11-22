@@ -49,6 +49,20 @@ const MAX_TOKEN_AGE_S = 5 * 60;
 const CERT_REFETCH_MS = 5 * 60 * 1000;
 /** Signed-in devices kept per account. Nothing else prunes the table. */
 const TOKENS_PER_ACCOUNT = 5;
+/**
+ * How long a bearer token stays good for. Ninety days: long enough that a person who sends a
+ * pack every few months is not asked to sign in each time, short enough that a token lifted
+ * from a phone stops working while the account still matters. The app turns a 401 into
+ * Result.SignedOut (SubmitClient.kt:166) and asks Google again, so the cost of expiry is one
+ * tap, not a lost account.
+ */
+const TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+
+/**
+ * On every JSON answer. There is no HTML and no cookie here, so this is a small thing, but a
+ * response that says what it is costs one line and closes the sniffing question for good.
+ */
+const SAFE_HEADERS = { "X-Content-Type-Options": "nosniff" };
 
 /* ---- the ceilings, so a bill cannot arrive as a surprise -------------------
  *
@@ -94,7 +108,7 @@ export default {
       // Never leak an internal message to a phone. The client turns a 5xx into "could not
       // reach Peel", which is the right thing for somebody to see.
       console.error(e);
-      return new Response(null, { status: 500 });
+      return new Response(null, { status: 500, headers: SAFE_HEADERS });
     }
     return refuse(404, "No such thing here.");
   },
@@ -173,19 +187,24 @@ async function accountGoogle(request, env) {
   const accountId = account?.id;
   if (!accountId) return refuse(401, "That sign-in did not work. Try again.");
 
-  const token = await issueToken(env, accountId);
+  const { token, hash } = await issueToken(env, accountId);
   // Nothing else prunes this table. Token issuance used to sit behind the code ceilings and
   // now sits behind nothing, so without this one Google account could fill D1's daily write
   // allowance by signing in in a loop, and /packs would start failing for everybody.
   //
-  // The token just handed out is excluded by name rather than trusted to sort to the top:
+  // The token just handed out is excluded by its hash rather than trusted to sort to the top:
   // several tokens can share a created_at millisecond, and the tie-break is not ours to
   // choose, so the row this request depends on could otherwise be the one deleted.
+  //
+  // Expired rows go in the same statement. A sign-in is the one place a write is already
+  // happening, so this needs no cron and no sweeper: the table cannot grow without somebody
+  // signing in, and signing in is what cleans it.
   await env.DB.prepare(
-    "DELETE FROM tokens WHERE account_id = ? AND token != ? AND token NOT IN " +
-    "(SELECT token FROM tokens WHERE account_id = ? ORDER BY created_at DESC LIMIT ?)"
-  ).bind(accountId, token, accountId, TOKENS_PER_ACCOUNT - 1).run();
-  return Response.json({ token });
+    "DELETE FROM tokens WHERE account_id = ? AND token_hash != ? AND (created_at < ? OR " +
+    "token_hash NOT IN (SELECT token_hash FROM tokens WHERE account_id = ? " +
+    "ORDER BY created_at DESC LIMIT ?))"
+  ).bind(accountId, hash, now - TOKEN_TTL_MS, accountId, TOKENS_PER_ACCOUNT - 1).run();
+  return Response.json({ token }, { headers: SAFE_HEADERS });
 }
 
 /**
@@ -363,17 +382,35 @@ async function accountDelete(request, env) {
   for (const row of waiting.results ?? []) {
     await env.PACKS.delete(`${row.id}.peel`);
   }
-  return Response.json({ published: published?.n ?? 0 });
+  return Response.json({ published: published?.n ?? 0 }, { headers: SAFE_HEADERS });
 }
 
-/** The account behind a Bearer token, or null. */
-async function whoIs(request, env) {
+/**
+ * The account behind a Bearer token, or null.
+ *
+ * Two things this does that the first version did not, both found by audit on 22 Nov 2026:
+ *
+ * The table stores a SHA-256 of the token, never the token. Anyone who can read D1 — a leaked
+ * API token, a dashboard session, a backup copied to the wrong place — could previously act as
+ * any signed-in person, because the column held the credential itself. A hash is not reversible,
+ * so a stolen database is no longer a stolen set of sessions. No salt and no slow hash: the
+ * token is 24 random bytes from crypto.getRandomValues, so there is no password to guess and
+ * nothing for a dictionary to work on; bcrypt here would only cost latency.
+ *
+ * And a token now expires. `created_at` was written from the start and never compared to
+ * anything, so a token copied off a phone stayed valid until that account signed in five more
+ * times. TOKEN_TTL_MS is the ceiling; the app turns a 401 into Result.SignedOut and asks for
+ * Google again, which is one tap, so the cost of being wrong is small and the benefit is that a
+ * leaked token stops working by itself.
+ */
+export async function whoIs(request, env) {
   const auth = request.headers.get("Authorization") ?? "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!token) return null;
   const row = await env.DB.prepare(
-    "SELECT a.id, a.blocked_at FROM tokens t JOIN accounts a ON a.id = t.account_id WHERE t.token = ?"
-  ).bind(token).first();
+    "SELECT a.id, a.blocked_at FROM tokens t JOIN accounts a ON a.id = t.account_id " +
+    "WHERE t.token_hash = ? AND t.created_at > ?"
+  ).bind(await sha256(new TextEncoder().encode(token)), Date.now() - TOKEN_TTL_MS).first();
   return row ?? null;
 }
 
@@ -441,7 +478,7 @@ async function packs(request, env) {
     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'waiting', ?)"
   ).bind(id, session.id, credit, note, checked.name, checked.stickers, bytes.byteLength, sha, Date.now()).run();
 
-  return Response.json({ id });
+  return Response.json({ id }, { headers: SAFE_HEADERS });
 }
 
 /* ------------------------------------------------------------- the archive */
@@ -618,7 +655,7 @@ async function packLikes(request, env) {
   // The website reads this too, from a different origin, so it says who may. Only this
   // endpoint: the ones that take a token stay same-origin, because nothing in a browser has
   // any business carrying a Peel token and keeping the surface small costs nothing here.
-  return Response.json({ likes, mine }, { headers: { "Access-Control-Allow-Origin": SITE_ORIGIN } });
+  return Response.json({ likes, mine }, { headers: { ...SAFE_HEADERS, "Access-Control-Allow-Origin": SITE_ORIGIN } });
 }
 
 /**
@@ -665,7 +702,7 @@ async function setPackLike(request, env) {
   const count = await env.DB.prepare(
     "SELECT COUNT(*) AS n FROM votes WHERE submission_id = ?"
   ).bind(pack.id).first();
-  return Response.json({ slug, likes: count?.n ?? 0, mine: on });
+  return Response.json({ slug, likes: count?.n ?? 0, mine: on }, { headers: SAFE_HEADERS });
 }
 
 /* ------------------------------------------------------------ the iPhone list */
@@ -697,7 +734,7 @@ export async function iosWaitlist(request, env) {
   // nothing. text/plain on the way in keeps it a simple request with no preflight, which is
   // what /packs/likes does and why this Worker still needs no OPTIONS route.
   const cors = { "Access-Control-Allow-Origin": SITE_ORIGIN };
-  const answer = (body, status = 200) => Response.json(body, { status, headers: cors });
+  const answer = (body, status = 200) => Response.json(body, { status, headers: { ...SAFE_HEADERS, ...cors } });
 
   const body = await json(request);
   const email = field(body, "email").trim().toLowerCase();
@@ -736,16 +773,23 @@ export async function iosWaitlist(request, env) {
 }
 
 function refuse(status, error) {
-  return Response.json({ error }, { status });
+  return Response.json({ error }, { status: status, headers: SAFE_HEADERS });
 }
 
-async function issueToken(env, accountId) {
+/**
+ * Makes a token, stores only its hash, and returns both: the plaintext for the phone, the hash
+ * for the caller's own statements. The plaintext exists in this Worker's memory for the length
+ * of one request and is never written anywhere.
+ */
+export async function issueToken(env, accountId) {
   const token = base64url(crypto.getRandomValues(new Uint8Array(24)));
-  await env.DB.prepare("INSERT INTO tokens (token, account_id, created_at) VALUES (?, ?, ?)")
-    .bind(token, accountId, Date.now()).run();
-  return token;
+  const hash = await sha256(new TextEncoder().encode(token));
+  await env.DB.prepare("INSERT INTO tokens (token_hash, account_id, created_at) VALUES (?, ?, ?)")
+    .bind(hash, accountId, Date.now()).run();
+  return { token, hash };
 }
 
+/** Hex SHA-256 of some bytes. Used for pack de-duplication and for hashing a token. */
 async function sha256(bytes) {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");

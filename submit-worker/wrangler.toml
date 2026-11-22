@@ -2,6 +2,13 @@
 #
 # The database id below is account-specific and is printed by `wrangler d1 create`.
 
+# NOTE, 22 Nov 2026: `preview_urls = false` does NOT belong here. Wrangler 4.166 does not know
+# that key at the top level - it silently turns it into an environment variable called
+# preview_urls, so the config looks fixed while every deployed version stays publicly servable
+# at <version-prefix>-peel-submit.refineco.workers.dev. The setting lives in the dashboard:
+# Workers & Pages -> peel-submit -> Settings -> Domains & Routes -> Preview URLs.
+# This Worker was deleted and redeployed on 22 Nov 2026 to drop the 13 old versions that were
+# reachable that way, including ones from before the 17 Oct authentication fixes.
 name = "peel-submit"
 main = "src/index.js"
 compatibility_date = "2026-10-01"

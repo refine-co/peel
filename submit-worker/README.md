@@ -27,7 +27,7 @@ account it runs under. Account details and billing are in the vault notes.
 ```
 ./check.sh                                            # first, against `wrangler dev`
 npx wrangler deploy
-npx wrangler d1 execute peel-submit --remote --file=migrations/<file>.sql
+npx wrangler d1 execute peel-submit --remote --file schema.sql
 ```
 
 ## Signing in
