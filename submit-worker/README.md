@@ -11,6 +11,16 @@ account it runs under. Account details and billing are in the vault notes.
 
 **Running:**
 
+- **This folder is published on the public web.** The repository it sits in is what GitHub Pages
+  serves at peel.refineco.app, and a `.nojekyll` file means every file is copied verbatim with no
+  way to exclude one. So `https://peel.refineco.app/submit-worker/src/index.js` returns this
+  Worker's source, and the same for the schema, the migrations and this README. That is survivable
+  because the repository is public anyway and none of it holds a secret — the two variables in
+  `wrangler.toml` are documented as not secret, and the real secrets live in Cloudflare, not here.
+  What it does mean: **never put an export, a dump or a backup in this folder.** A `backup/` of the
+  live tables was taken on 22 Nov 2026 and deliberately written outside the repository, to
+  `~/Documents/refineco/backups/`, because it held bearer tokens and email addresses and dropping
+  it here would have published both.
 - D1 database `peel-submit` and R2 bucket `peel-submissions`.
 - Deployed at `https://peel-submit.refineco.workers.dev`, which is the address the app posts
   to (`SUBMIT_BASE_URL` in `app/build.gradle.kts`).
