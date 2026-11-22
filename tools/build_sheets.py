@@ -109,6 +109,15 @@ PACKS = [
         "section": "Christmas",
     },
     {
+        "slug": "caught",
+        "title": "Caught",
+        "spec": None,
+        "c1": "#6b1d1a", "c2": "#f7e08a",
+        "sub": "12 animated stickers \u00b7 a cat caught mid-crime in a Christmas house, the lights still pulsing and the bauble still falling: Help., Gravity., Someone did that.",
+        "new_until": "2026-12-26",
+        "section": None,
+    },
+    {
         "slug": "half-of-this",
         "title": "Half of This",
         "spec": None,
@@ -833,7 +842,7 @@ def main():
 # list.
 PAGE_ORDER = [
     # Christmas, from 9 November 2026: the free greeting first, then the paid packs.
-    "merry-bright", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
+    "merry-bright", "caught", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
     # Year-round, then the two festivals that are behind us.
     "reactions", "say-it", "gleany-naughty", "oyen-kampung",
     # Halloween: animated first.
