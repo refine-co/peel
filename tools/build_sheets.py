@@ -21,6 +21,9 @@ import sys
 import zipfile
 from urllib.parse import quote
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import build_catalogue as _catalogue  # noqa: E402  (a sibling tool, for the running order)
+
 SITE = pathlib.Path(__file__).resolve().parent.parent
 SPECS = pathlib.Path.home() / "Projects/android-peel/tools/packs/site"
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -840,16 +843,22 @@ def main():
 # so nothing is hidden by being second. Anything not listed, such as a pack somebody sent in,
 # goes after these in the order it was found. Sorted in place: build_deck already holds this
 # list.
+# The running order of the shelves is not written here any more: build_catalogue works it out
+# from today's date, so whatever festival is in season leads and a festival that has gone sinks
+# below the year-round packs. Only the order WITHIN a shelf is a judgement, and that lives in
+# build_catalogue.RUNS beside the dates. See the long note there, including the part about this
+# being decided when the site is built and not when it is read.
+# RUNS holds scenes as well as packs, because the app's shelf carries both, and the scene ids
+# are simply left in: they match no pack and sort against nothing. They must NOT be filtered out
+# against PACKS here -- PACKS is still being filled when this runs, and a slug added later (as
+# oyen-kampung is) would be dropped from the running order and fall to the end of the page.
+#
+# Each shelf's heading is carried by its first pack, so the order within a RUN is not free to
+# rearrange: move the first pack and the heading travels with it.
 PAGE_ORDER = [
-    # Christmas, from 9 November 2026: the free greeting first, then the paid packs.
-    "merry-bright", "caught", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan", "sweet-season",
-    # Year-round, then the two festivals that are behind us.
-    "reactions", "say-it", "gleany-naughty", "oyen-kampung",
-    # Halloween: animated first.
-    "just-lurking", "low-light", "ghost-says", "moth-lights", "dead-honest", "sir-crow",
-    "halloween", "halloween-night", "midnight-replies",
-    # Deepavali: animated first.
-    "divine-blessings", "lakshmi", "little-diya", "mayil", "kolam-lights", "happy-deepavali",
+    pack_id
+    for occasion in _catalogue.occasion_order()
+    for pack_id in _catalogue.RUNS[occasion]
 ]
 
 

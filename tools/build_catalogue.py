@@ -25,6 +25,7 @@ Writes catalogue.json and one thumbnail per item into the Android project's asse
 """
 
 import base64
+import datetime
 import hashlib
 import io
 import json
@@ -226,16 +227,147 @@ CATEGORY_BY_ID: dict[str, str] = {
 # cats follow. Categories left out of this list follow, in the order the packs happen to be in.
 # Inside Deepavali the scene leads, then the paid hero, and the free greeting sits fourth, where
 # the person who came for a free greeting still finds it without the first card being a free one.
-CATEGORY_ORDER = ["festivals", "cats", "chat", "cosy", "halloween"]
-# Christmas leads from 9 November 2026: the free scene, then the free greeting pack, then the four
-# paid packs; Deepavali (8 November) is behind us and follows. Halloween went to the back of
-# CATEGORY_ORDER the same day, behind the year-round shelves.
-SHELF_ORDER = [
-    "christmas-eve", "christmas-market", "aurora-cabin", "santas-workshop", "last-tram-home", "gingerbread-kitchen", "rooftop-sleigh",
-    "merry-bright", "caught", "half-of-this", "ho-ho-oops", "cosy-windows", "knitted-friends", "velvet-tartan",
-    "sweet-season", "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi", "happy-deepavali",
-    "little-diya", "mayil", "kolam-lights",
-]
+# CATEGORY_ORDER is worked out further down, from the date, by the same rule as the shelves:
+# see `occasion_order`. It used to be hand-written, and moving Halloween to the back of it on
+# 9 November 2026 was a hand edit somebody had to remember to make. Nobody has to make it again.
+# What is in season, and therefore what leads "More fun".
+#
+# This used to be one hand-written running order, which is why Deepavali still sat above the
+# year-round packs a fortnight after Deepavali had been and gone, and why Halloween sat below
+# Deepavali for no reason anyone could state. The running order is now worked out from the date:
+# a festival that is in season leads, the year-round packs sit in the middle, and a festival that
+# has passed sinks below them until its next one comes round.
+#
+# IT IS WORKED OUT WHEN THE SITE IS BUILT, NOT WHEN IT IS READ. Both the app and the page get a
+# fixed order baked into catalogue.json and packs.html, so the shelf only moves when somebody
+# rebuilds. Rebuild at the turn of a season or the Christmas shelf will still be leading in
+# February. Making it move on its own would mean the app sorting by date at run time, which is an
+# app release, not a site build.
+#
+# Within an occasion the order stays hand-written, because it carries a judgement a date cannot:
+# the free greeting goes first so the shelf opens with something to take, then the paid packs.
+RUNS: dict[str, list[str]] = {
+    "christmas": [
+        "christmas-eve", "christmas-market", "aurora-cabin", "santas-workshop",
+        "last-tram-home", "gingerbread-kitchen", "rooftop-sleigh",
+        "merry-bright", "caught", "half-of-this", "ho-ho-oops", "cosy-windows",
+        "knitted-friends", "velvet-tartan", "sweet-season",
+    ],
+    "year-round": [
+        "reactions", "say-it", "gleany-naughty", "oyen-kampung",
+        "firefly-jar", "lantern-alley", "village-night",
+    ],
+    "halloween": [
+        "just-lurking", "low-light", "ghost-says", "moth-lights", "dead-honest", "sir-crow",
+        "halloween", "halloween-night", "midnight-replies", "knock-twice",
+    ],
+    "deepavali": [
+        "first-lamp", "deepavali-doorstep", "divine-blessings", "lakshmi",
+        "happy-deepavali", "little-diya", "mayil", "kolam-lights",
+    ],
+}
+
+# The day each festival falls on, and how long its shelf is worth leading. The lead is when the
+# shelf starts being useful, the tail is how long people are still sending it afterwards.
+# Christmas gets a long lead because the packs are bought to be used through December.
+OCCASION_DAYS: dict[str, tuple[int, int]] = {
+    "christmas": (12, 25),
+    "halloween": (10, 31),
+}
+OCCASION_WINDOW: dict[str, tuple[int, int]] = {
+    "christmas": (55, 8),
+    "halloween": (31, 2),
+    "deepavali": (14, 2),
+}
+# Deepavali moves every year, so it cannot be a month and a day. Only years that are actually
+# known go in here. 2026 is the date this site shipped its Deepavali shelf against: it led from
+# 1 November and went to the back on 9 November. An unknown year falls back to the most recent
+# known date and SAYS SO in the build output, rather than quietly ordering the shelf by a guess.
+DEEPAVALI_BY_YEAR: dict[int, tuple[int, int]] = {
+    2026: (11, 8),
+}
+
+
+def _occasion_day(name: str, year: int) -> tuple[datetime.date, bool]:
+    """(the date this occasion falls on in [year], whether that date is actually known)."""
+    if name in OCCASION_DAYS:
+        month, day = OCCASION_DAYS[name]
+        return datetime.date(year, month, day), True
+    known = DEEPAVALI_BY_YEAR.get(year)
+    if known:
+        return datetime.date(year, *known), True
+    latest = DEEPAVALI_BY_YEAR[max(DEEPAVALI_BY_YEAR)]
+    return datetime.date(year, *latest), False
+
+
+_WARNED: set[str] = set()          # so the note above is said once a build, not once a call
+
+
+def occasion_order(today=None) -> list[str]:          # a datetime.date, or today's
+    """The occasions of RUNS, in the order their shelves should appear today.
+
+    In season first, soonest first. Then the year-round shelf. Then the festivals that have been
+    and gone, the one coming round soonest at the top of them."""
+    today = today or datetime.date.today()
+    ranked, guessed = [], []
+    for name in RUNS:
+        if name == "year-round":
+            continue
+        lead, tail = OCCASION_WINDOW[name]
+        in_season, days_away = False, None
+        for year in (today.year - 1, today.year, today.year + 1):
+            day, known = _occasion_day(name, year)
+            if not known and year >= today.year:
+                guessed.append(name)
+            if -tail <= (day - today).days <= lead:
+                in_season, days_away = True, (day - today).days
+                break
+            if (day - today).days > 0 and days_away is None:
+                days_away = (day - today).days
+        ranked.append((0 if in_season else 1, days_away if days_away is not None else 9999, name))
+    ranked.sort()
+    order = [name for rank, _, name in ranked if rank == 0]
+    order.append("year-round")
+    order += [name for rank, _, name in ranked if rank == 1]
+    for name in sorted(set(guessed) - _WARNED):
+        _WARNED.add(name)
+        print(f"  NOTE  {name}'s next date is not in DEEPAVALI_BY_YEAR; "
+              f"ordered against the last known one. Add the real date.")
+    return order
+
+
+# Which shelves an occasion owns. "More fun" groups by category before it reads the running
+# order, so the categories have to move with the seasons too, or a Halloween shelf sits above
+# the year-round ones all through December however the packs inside it are sorted.
+CATEGORIES_OF: dict[str, list[str]] = {
+    "christmas": ["festivals"],
+    "deepavali": ["festivals"],
+    "halloween": ["halloween"],
+    "year-round": ["cats", "chat", "cosy"],
+}
+
+
+def category_order(today=None) -> list[str]:
+    """The categories, in the order their shelves should appear today.
+
+    Christmas and Deepavali share the single `festivals` category, so this cannot sink Deepavali
+    below the year-round shelves while Christmas is leading -- the category goes where its
+    earliest occasion puts it, and the two festivals can only be separated from each other by
+    the running order within that one shelf. Splitting them would mean a new category id, which
+    an install that has not refreshed would file under More."""
+    order: list[str] = []
+    for occasion in occasion_order(today):
+        for category in CATEGORIES_OF[occasion]:
+            if category not in order:
+                order.append(category)
+    for category in (c["id"] for c in CATEGORIES):
+        if category not in order:
+            order.append(category)
+    return order
+
+
+CATEGORY_ORDER = category_order()
+SHELF_ORDER = [pack_id for occasion in occasion_order() for pack_id in RUNS[occasion]]
 
 
 # A paid pack's file does not sit at packs/<id>.peel, where anybody can type it. It sits in a
