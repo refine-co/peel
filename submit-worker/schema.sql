@@ -13,7 +13,7 @@
 
 -- A person. Identity is google_sub, never the address: Google keeps the subject stable across
 -- an address change and never reuses it, while two people can hold the same address years apart.
-CREATE TABLE accounts (
+CREATE TABLE IF NOT EXISTS accounts (
   id          TEXT PRIMARY KEY,
   -- Not UNIQUE, deliberately. Somebody whose Google address changes would otherwise collide
   -- with a stranger's old row and turn their sign-in into a 500.
@@ -26,7 +26,20 @@ CREATE TABLE accounts (
   blocked_at  INTEGER,
   google_sub  TEXT
 );
-CREATE UNIQUE INDEX accounts_google_sub ON accounts(google_sub);
+CREATE UNIQUE INDEX IF NOT EXISTS accounts_google_sub ON accounts(google_sub);
+
+-- The row every deleted account's published submissions are pointed at, so the credit on the
+-- website still resolves while the person behind it is gone. Not an account anybody can sign
+-- in to: google_sub is NULL and no subject matches NULL.
+--
+-- This is load-bearing, not decoration. accountDelete() runs
+--   UPDATE submissions SET account_id = 'deleted' WHERE account_id = ?
+-- and submissions.account_id is a foreign key, so without this row the whole delete batch
+-- fails - after the R2 objects have already gone. That leaves somebody with their packs
+-- deleted and their account still present, unable to retry. It was missing for about twenty
+-- minutes on 22 Nov 2026 when this file was rewritten without it.
+INSERT OR IGNORE INTO accounts (id, email, name, created_at)
+VALUES ('deleted', 'deleted@invalid', 'A deleted account', 0);
 
 -- A signed-in device.
 --
@@ -41,15 +54,20 @@ CREATE UNIQUE INDEX accounts_google_sub ON accounts(google_sub);
 --
 -- created_at is compared, not merely recorded: see TOKEN_TTL_MS in src/index.js. Writing a
 -- timestamp and never reading it is how the old table let a stolen token live forever.
-CREATE TABLE tokens (
+CREATE TABLE IF NOT EXISTS tokens (
   token_hash TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL
 );
-CREATE INDEX tokens_account_id ON tokens(account_id);
+-- token_hash is the primary key, so a session lookup is already covered. This index is for the
+-- three statements that go the other way: the five-device prune, the account delete, and the
+-- cascade.
+CREATE INDEX IF NOT EXISTS tokens_account_id ON tokens(account_id);
 
--- A pack somebody sent in. Nothing here is public until a person sets state to 'published'.
-CREATE TABLE submissions (
+-- A pack somebody sent in. The file itself lives in R2 under the same id.
+-- state: waiting | published | refused | withdrawn
+-- Nothing here is public until a person sets state to 'published'.
+CREATE TABLE IF NOT EXISTS submissions (
   id          TEXT PRIMARY KEY,
   account_id  TEXT NOT NULL REFERENCES accounts(id),
   credit      TEXT NOT NULL,
@@ -65,14 +83,14 @@ CREATE TABLE submissions (
   slug        TEXT
 );
 -- The same pack sent twice is one row, decided by content rather than by name.
-CREATE UNIQUE INDEX submissions_sha ON submissions(sha256);
-CREATE INDEX submissions_state ON submissions(state, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS submissions_sha ON submissions(sha256);
+CREATE INDEX IF NOT EXISTS submissions_state ON submissions(state, created_at);
 -- Only published packs have a slug, and no two share one.
-CREATE UNIQUE INDEX submissions_slug ON submissions(slug) WHERE slug IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS submissions_slug ON submissions(slug) WHERE slug IS NOT NULL;
 
 -- One like per account per pack, enforced by the primary key rather than by a check followed
 -- by an insert: two taps racing each other then cost one row and have no window between them.
-CREATE TABLE votes (
+CREATE TABLE IF NOT EXISTS votes (
   submission_id TEXT NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
   account_id    TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
   created_at    INTEGER NOT NULL,
@@ -82,15 +100,15 @@ CREATE TABLE votes (
 -- Sign-in attempts, counted across everybody, written before the token is looked at. It counts
 -- attempts and not accounts on purpose: a failed sign-in makes no account and a returning
 -- person makes no account, so an accounts-per-day ceiling would never fire.
-CREATE TABLE sign_in_attempts (
+CREATE TABLE IF NOT EXISTS sign_in_attempts (
   id TEXT PRIMARY KEY,
   at INTEGER NOT NULL
 );
-CREATE INDEX sign_in_attempts_at ON sign_in_attempts(at);
+CREATE INDEX IF NOT EXISTS sign_in_attempts_at ON sign_in_attempts(at);
 
 -- The iPhone waitlist. Three columns and no more: an address, when, and where they came from.
 -- Nothing here needs a new category in the privacy policy.
-CREATE TABLE ios_waitlist (
+CREATE TABLE IF NOT EXISTS ios_waitlist (
   -- Lowercased on the way in, so two spellings of one address are one row. INSERT OR IGNORE
   -- against this key is the whole dedupe, with no window for a double tap to fit through.
   email      TEXT PRIMARY KEY,
@@ -101,4 +119,4 @@ CREATE TABLE ios_waitlist (
   -- The country Cloudflare saw. Costs nothing and says whether a small list is small everywhere.
   country    TEXT
 );
-CREATE INDEX ios_waitlist_created ON ios_waitlist(created_at);
+CREATE INDEX IF NOT EXISTS ios_waitlist_created ON ios_waitlist(created_at);
